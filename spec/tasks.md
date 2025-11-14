@@ -1,0 +1,10 @@
+- [ ] Inventariar arquivos de texto com encoding inconsistente, corrigir ocorrências corrompidas (ex.: "Produ��o") e converter tudo para UTF-8.
+- [ ] Criar `.editorconfig` com charset UTF-8, finais de linha LF e regras de indentação para TS/TSX, Markdown e JSON, registrando seu uso no README.
+- [ ] Implementar `scripts/check-encoding.mjs` + `npm run check-encoding`, integrado ao pipeline local para impedir novos arquivos fora de UTF-8.
+- [ ] Reestruturar `spec/schema_sql.md` com playbook (objetivo, quem executa, validação) e matriz de acesso por papel.
+- [ ] Adicionar SQL de RLS para `profiles`, `clients` e `products`, garantindo leitura controlada por papel e mutações apenas para `admin`.
+- [ ] Definir SQL de RLS para `quotes` e `quote_items`, separando políticas de leitura e mutação e removendo caracteres corrompidos.
+- [ ] Atualizar as policies de `orders` com os status corretos e fluxos de transição (`admin`, `kitchen`, `delivery`) e incluir `force row level security`.
+- [ ] Documentar no README o playbook de policies (quando rodar, como validar, comandos auxiliares) apontando para `spec/schema_sql.md`.
+- [ ] Criar `npm run verify` (lint + typecheck + build) e configurar Husky `pre-push` rodando `npm run check-encoding && npm run verify`, com instruções de bypass.
+- [ ] Executar `npm run verify` localmente para validar a fase e anexar o resultado (ou capturas) ao PR.
