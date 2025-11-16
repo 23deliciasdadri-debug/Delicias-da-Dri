@@ -334,7 +334,7 @@ const ClientsPage: React.FC = () => {
         <div>
           <p className="text-sm text-muted-foreground uppercase tracking-wide">Clientes</p>
           <h1 className="text-4xl font-serif font-bold bg-gradient-to-r from-rose-600 to-orange-500 bg-clip-text text-transparent">
-            Relacionamento & CRM
+            CRM
           </h1>
         </div>
         <Button

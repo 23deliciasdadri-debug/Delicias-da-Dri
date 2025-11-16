@@ -46,7 +46,7 @@ import { listOrders, updateOrderStatus, type OrderWithDetails } from '../service
 
 const ALL_STATUSES: OrderStatus[] = [
   'Aprovado',
-  'Em ProduÃ§Ã£o',
+  'Em Produção',
   'Pronto para Entrega',
   'Em Entrega',
   'Entregue',
@@ -65,8 +65,8 @@ const STATUS_META: Record<OrderStatus, typeof DEFAULT_STATUS_META> = {
     badgeClass: 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white',
     cardBg: 'bg-blue-50/95 text-slate-900 border border-blue-100 shadow-blue-500/20 dark:bg-blue-500/20 dark:text-blue-50 dark:border-blue-500/40',
   },
-  'Em ProduÃ§Ã£o': {
-    label: 'Em ProduÃ§Ã£o',
+  'Em Produção': {
+    label: 'Em Produção',
     badgeClass: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white',
     cardBg: 'bg-amber-50/95 text-slate-900 border border-amber-100 shadow-orange-500/20 dark:bg-amber-500/20 dark:text-amber-50 dark:border-amber-500/40',
   },
@@ -94,7 +94,7 @@ const STATUS_META: Record<OrderStatus, typeof DEFAULT_STATUS_META> = {
 
 const ROLE_VISIBLE_STATUSES: Record<ProfileRole, OrderStatus[]> = {
   admin: ALL_STATUSES,
-  kitchen: ['Aprovado', 'Em ProduÃ§Ã£o'],
+  kitchen: ['Aprovado', 'Em Produção'],
   delivery: ['Pronto para Entrega', 'Em Entrega'],
 };
 
@@ -103,8 +103,8 @@ const ROLE_TRANSITIONS: Record<
   Partial<Record<OrderStatus, OrderStatus[]>>
 > = {
   kitchen: {
-    Aprovado: ['Em ProduÃ§Ã£o'],
-    'Em ProduÃ§Ã£o': ['Pronto para Entrega'],
+    Aprovado: ['Em Produção'],
+    'Em Produção': ['Pronto para Entrega'],
   },
   delivery: {
     'Pronto para Entrega': ['Em Entrega'],
@@ -336,8 +336,8 @@ const OrdersPage: React.FC = () => {
     if (!details) {
       toast({
         status: 'info',
-        title: 'Sem endereÃ§o disponÃ­vel',
-        description: 'Este pedido ainda nÃ£o possui detalhes de entrega registrados.',
+        title: 'Sem endereço disponível',
+        description: 'Este pedido ainda não possui detalhes de entrega registrados.',
       });
       return;
     }
@@ -346,7 +346,7 @@ const OrdersPage: React.FC = () => {
         await navigator.clipboard.writeText(details);
         toast({
           status: 'success',
-          title: 'EndereÃ§o copiado',
+          title: 'Endereço copiado',
           description: 'Cole no app de entregas ou compartilhe com o seu time.',
         });
         return;
@@ -417,8 +417,8 @@ const OrdersPage: React.FC = () => {
     if (!canMove) {
       toast({
         status: 'error',
-        title: 'TransiÃ§Ã£o nÃ£o permitida',
-        description: 'Seu papel atual nÃ£o pode mover o pedido para esse status.',
+        title: 'Transição não permitida',
+        description: 'Seu papel atual não pode mover o pedido para esse status.',
       });
       return;
     }
@@ -849,7 +849,7 @@ const KanbanOrderCard: React.FC<KanbanOrderCardProps> = ({
                 stopPropagation(event);
                 onCopyDeliveryDetails(order.delivery_details);
               }}
-              aria-label="Copiar endereÃ§o"
+              aria-label="Copiar endereço"
             >
               <MapPin className="size-4 text-slate-700" />
             </Button>
