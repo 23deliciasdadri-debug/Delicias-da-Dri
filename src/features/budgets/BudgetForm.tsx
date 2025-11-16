@@ -29,7 +29,7 @@ const budgetItemSchema = z.object({
   id: z.string(),
   productId: z.string().optional().nullable(),
   productName: z.string().min(1, 'Informe o nome do item.'),
-  quantity: z.number().min(1, 'Quantidade minima: 1'),
+  quantity: z.number().min(1, 'Quantidade mínima: 1'),
   unitPrice: z.number().min(0.01, 'Valor deve ser maior que zero.'),
 });
 
@@ -77,7 +77,7 @@ interface BudgetFormProps {
 
 const DEFAULT_SUBTITLES: Record<BudgetFormMode, string> = {
   create: 'Preencha os dados do evento, selecione itens e gere uma proposta.',
-  edit: 'Ajuste valores, itens e observacoes antes de reenviar ao cliente.',
+  edit: 'Ajuste valores, itens e observações antes de reenviar ao cliente.',
 };
 
 const BudgetForm: React.FC<BudgetFormProps> = ({
@@ -91,7 +91,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
 }) => {
   const { toast } = useToast();
 
-  const resolvedTitle = title ?? (mode === 'edit' ? 'Editar Orcamento' : 'Criar Orcamento');
+  const resolvedTitle = title ?? (mode === 'edit' ? 'Editar orçamento' : 'Criar orçamento');
   const resolvedSubtitle = subtitle ?? DEFAULT_SUBTITLES[mode];
 
   const fetchClients = useCallback(() => listClients({ pageSize: 1000 }), []);
@@ -231,11 +231,11 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
     }
 
     toast({
-      title: mode === 'edit' ? 'Orcamento atualizado' : 'Orcamento criado',
+      title: mode === 'edit' ? 'orçamento atualizado' : 'orçamento criado',
       description:
         mode === 'edit'
-          ? 'As alteracoes foram salvas e ja estao disponiveis na lista.'
-          : 'O orcamento foi salvo e ja aparece na listagem.',
+          ? 'As alterações foram salvas e já estão disponiveis na lista.'
+          : 'O orçamento foi salvo e já aparece na listagem.',
     });
 
     if (mode === 'create') {
@@ -277,7 +277,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="space-y-1">
             <p className="text-sm uppercase tracking-widest text-muted-foreground">
-              {mode === 'edit' ? 'Modo edicao' : 'Novo fluxo'}
+              {mode === 'edit' ? 'Modo edição' : 'Novo fluxo'}
             </p>
             <h1 className="text-4xl font-serif font-bold bg-gradient-to-r from-rose-600 to-orange-500 bg-clip-text text-transparent">
               {resolvedTitle}
@@ -298,7 +298,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
 
         <div className="grid gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
-            <FormSection title="Cliente" description="Selecione quem recebera o orcamento.">
+            <FormSection title="Cliente" description="Selecione quem receberá o orçamento.">
               {clientsError ? (
                 <Alert variant="destructive">
                   <AlertTitle>Erro ao carregar clientes</AlertTitle>
@@ -327,7 +327,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
               )}
             </FormSection>
 
-            <FormSection title="Evento" description="Contexto e observacoes.">
+            <FormSection title="Evento" description="Contexto e observações.">
               <div className="grid gap-4 md:grid-cols-2">
                 <FormField name="event_type" label="Tipo de evento" render={({ field }) => <Input {...field} />} />
                 <FormField
@@ -338,12 +338,12 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
               </div>
               <FormField
                 name="notes"
-                label="Observacoes"
+                label="observações"
                 render={({ field }) => (
                   <textarea
                     {...field}
                     rows={4}
-                    placeholder="Detalhes de entrega, restricoes, referencias..."
+                    placeholder="Detalhes de entrega, restrições, referencias..."
                     className="min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-rose-500 focus-visible:ring-2 focus-visible:ring-rose-500/30"
                   />
                 )}
@@ -351,7 +351,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
             </FormSection>
 
             <FormSection
-              title="Itens do orcamento"
+              title="Itens do orçamento"
               description="Monte a proposta usando itens do catalogo ou personalizados."
               actions={
                 <Button
@@ -407,13 +407,13 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
                           </div>
                           <FormField
                             name={`items.${index}.productName` as const}
-                            label="Nome no orcamento"
+                            label="Nome no orçamento"
                             render={({ field: itemField }) => (
                               <Input
                                 {...itemField}
                                 value={itemField.value ?? ''}
                                 onChange={(event) => itemField.onChange(event.target.value)}
-                                placeholder="Descricao exibida para o cliente"
+                                placeholder="Descrição exibida para o cliente"
                               />
                             )}
                           />
@@ -523,12 +523,12 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
               {activeMutation.isMutating ? (
                 <>
                   <Loader2 className="mr-2 size-5 animate-spin" />
-                  {mode === 'edit' ? 'Salvando alteracoes...' : 'Salvando orcamento...'}
+                  {mode === 'edit' ? 'Salvando alterações...' : 'Salvando orçamento...'}
                 </>
               ) : mode === 'edit' ? (
-                'Salvar alteracoes'
+                'Salvar alterações'
               ) : (
-                'Salvar orcamento'
+                'Salvar orçamento'
               )}
             </Button>
           </div>

@@ -1,6 +1,6 @@
 # Delicias da Dri v2
 
-Painel administrativo em React + Vite para gerir pedidos, orcamentos e produtos da confeitaria. O MVP esta sendo estruturado em fases, com Supabase como backend.
+Painel administrativo em React + Vite para gerir pedidos, orçamentos e produtos da confeitaria. O MVP esta sendo estruturado em fases, com Supabase como backend.
 
 ## Requisitos
 
@@ -10,7 +10,7 @@ Painel administrativo em React + Vite para gerir pedidos, orcamentos e produtos 
 ### Configurando o `.env.local`
 
 ```
-GEMINI_API_KEY=PLACEHOLDER_API_KEY               # pode ficar vazio se voce nao usa fluxos AI
+GEMINI_API_KEY=PLACEHOLDER_API_KEY               # pode ficar vazio se você não usa fluxos AI
 VITE_SUPABASE_URL=https://<PROJECT>.supabase.co  # URL do seu projeto Supabase
 VITE_SUPABASE_ANON_KEY=seu_anon_key              # chave anon gerada pelo Supabase
 ```
@@ -21,7 +21,7 @@ VITE_SUPABASE_ANON_KEY=seu_anon_key              # chave anon gerada pelo Supaba
 
 - `npm install`: instala dependencias.
 - `npm run dev`: sobe o servidor de desenvolvimento.
-- `npm run build`: gera o bundle de producao.
+- `npm run build`: gera o bundle de produção.
 - `npm run preview`: valida o build localmente apos `npm run build`.
 - `npm run lint`: executa ESLint em todos os arquivos `.ts/.tsx`.
 - `npm run format`: aplica Prettier no projeto.
@@ -42,24 +42,24 @@ VITE_SUPABASE_ANON_KEY=seu_anon_key              # chave anon gerada pelo Supaba
 |   |-- hooks/             # hooks customizados
 |   |-- lib/               # utilitarios globais (ex: helpers de estilo)
 |   |-- providers/         # provedores/contextos React
-|   |-- services/          # integracoes externas (Supabase, APIs)
+|   |-- services/          # integrações externas (Supabase, APIs)
 |   |-- styles/            # estilos globais
-|   |-- types/             # definicoes de tipos compartilhados
-|   `-- utils/             # funcoes auxiliares puras
-`-- spec/                  # documentacao e planejamento (roadmap, proposals, tasks)
+|   |-- types/             # definições de tipos compartilhados
+|   `-- utils/             # funções auxiliares puras
+`-- spec/                  # documentação e planejamento (roadmap, proposals, tasks)
 ```
 
-## Convencoes atuais
+## Convenções atuais
 
 - Imports absolutos com prefixo `@/` apontam para `src/`.
 - Estilos globais residem em `src/styles/index.css` e sao construidos via Tailwind + PostCSS (sem dependencia de CDN).
 - ESLint (+ Prettier) sao a base para padrao de codigo (aplicados sobre `src/` e arquivos de config na raiz); use `npm run lint`/`npm run format` antes de abrir PRs.
-- Pastas `providers/`, `services/`, `types/` e `utils/` possuem READMEs descrevendo o proposito ate receberem implementacoes.
+- Pastas `providers/`, `services/`, `types/` e `utils/` possuem READMEs descrevendo o proposito ate receberem implementações.
 
 ## Configurando o Supabase
 
 - Copie o conteudo de `spec/schema_sql.md` para o SQL Editor e execute cada bloco (extensoes, tabelas, triggers/policies, seeds) no modo "Run as owner".
-- Crie usuarios em **Auth -> Users** (ex.: admin@delicias.com) e depois execute os `UPDATE` em `profiles` para ajustar o campo `role`.
+- Crie usuários em **Auth -> Users** (ex.: admin@delicias.com) e depois execute os `UPDATE` em `profiles` para ajustar o campo `role`.
 - Apos rodar os seeds, confirme que `clients`, `products`, `quotes`, `quote_items` e `orders` possuem registros para testes locais.
 - Ajuste as variaveis do `.env.local` com a URL/anon key do seu projeto antes de iniciar `npm run dev`.
 
@@ -99,4 +99,4 @@ npm run build
 ## Desenvolvimento atual
 
 - Fase 0 concluida (pipeline local, lint/format, typecheck).
-- Fase 1: autenticao real com Supabase e seeds registrados; etapas seguintes abordam CRUD dos modulos principais (ver `spec/roadmap.md`).
+- Fase 1: autentição real com Supabase e seeds registrados; etapas seguintes abordam CRUD dos modulos principais (ver `spec/roadmap.md`).

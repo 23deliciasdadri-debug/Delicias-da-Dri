@@ -45,7 +45,7 @@ const PublicQuotePreviewApp: React.FC = () => {
 
   useEffect(() => {
     if (!token) {
-      setError('Link invalido ou expirado.');
+      setError('Link inválido ou expirado.');
       setIsLoading(false);
       return;
     }
@@ -58,7 +58,7 @@ const PublicQuotePreviewApp: React.FC = () => {
         setQuote(result);
       } catch (err) {
         const message =
-          err instanceof Error ? err.message : 'Nao foi possivel carregar este orcamento.';
+          err instanceof Error ? err.message : 'não foi possivel carregar este orçamento.';
         setError(message);
       } finally {
         setIsLoading(false);
@@ -94,11 +94,11 @@ const PublicQuotePreviewApp: React.FC = () => {
       setQuote(refreshed);
       setApprovalFeedback({
         type: 'success',
-        message: 'Orcamento aprovado com sucesso! Avisaremos a equipe automaticamente.',
+        message: 'orçamento aprovado com sucesso! Avisaremos a equipe automaticamente.',
       });
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Nao conseguimos aprovar este orcamento.';
+        err instanceof Error ? err.message : 'não conseguimos aprovar este orçamento.';
       setApprovalFeedback({
         type: 'error',
         message,
@@ -113,7 +113,7 @@ const PublicQuotePreviewApp: React.FC = () => {
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
         <header className="text-center space-y-1">
           <p className="text-xs uppercase tracking-[0.6em] text-rose-400">Delicias da Dri</p>
-          <h1 className="text-3xl font-serif font-bold text-foreground">Visualizacao de Orcamento</h1>
+          <h1 className="text-3xl font-serif font-bold text-foreground">Visualizacao de orçamento</h1>
           <p className="text-sm text-muted-foreground">
             Este link e seguro e permite apenas a leitura deste documento.
           </p>
@@ -137,15 +137,15 @@ const PublicQuotePreviewApp: React.FC = () => {
               <>
                 {quote.status !== 'Aprovado' ? (
                   <Button className="w-full" onClick={handleApproveQuote} disabled={isApproving}>
-                    {isApproving ? 'Enviando confirmacao...' : 'Aprovar orcamento'}
+                    {isApproving ? 'Enviando confirmação...' : 'Aprovar orçamento'}
                   </Button>
                 ) : (
                   <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-3 text-sm text-emerald-700 text-center">
-                    Este orcamento foi aprovado em{' '}
+                    Este orçamento foi aprovado em{' '}
                     <span className="font-semibold">
                       {quote.approved_at
                         ? new Date(quote.approved_at).toLocaleDateString('pt-BR')
-                        : 'data nao informada'}
+                        : 'data não informada'}
                     </span>
                     .
                   </div>

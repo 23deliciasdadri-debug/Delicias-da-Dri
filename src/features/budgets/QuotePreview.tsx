@@ -58,7 +58,7 @@ const QuotePreview: React.FC<QuotePreviewProps> = ({
     >
       <div className="flex flex-wrap items-start justify-between gap-4 border-b px-6 py-5 bg-gradient-to-r from-rose-50 to-orange-50">
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Orçamento #{quote.id.slice(0, 8)}</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Orcamento #{quote.id.slice(0, 8)}</p>
           <h2 className="text-3xl font-serif font-bold text-foreground mt-1">{quote.event_type || 'Proposta personalizada'}</h2>
           <p className="text-sm text-muted-foreground">{documentData.client.name || 'Cliente não identificado'}</p>
         </div>
@@ -146,8 +146,7 @@ const QuotePreview: React.FC<QuotePreviewProps> = ({
               <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-card/80 p-3 text-sm text-emerald-700">
                 <CheckCircle2 className="size-4 mt-0.5" />
                 <p>
-                  Ao aprovar este orcamento, registraremos automaticamente a data e notificaremos o time
-                  comercial.
+                  Ao aprovar este orcamento, registraremos automaticamente a data e notificaremos aos nosso colaboradores.
                 </p>
               </div>
             ) : null}

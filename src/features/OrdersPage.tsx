@@ -244,7 +244,7 @@ const getWhatsAppLink = (phone?: string | null, clientName?: string | null) => {
     return null;
   }
   const text = encodeURIComponent(
-    `OlÃ¡${clientName ? ` ${clientName}` : ''}! Aqui Ã© a DelÃ­cias da Dri com novidades do seu pedido.`,
+    `Olá!${clientName ? ` ${clientName}` : ''}! Muito bom ter você conosco.`,
   );
   return `https://wa.me/${digits}?text=${text}`;
 };
@@ -494,7 +494,7 @@ const OrdersPage: React.FC = () => {
         <p className="text-sm text-muted-foreground">
           {profile
             ? `Seu papel atual: ${profile.role}.`
-            : 'Carregando permissoes do usuario...'}
+            : 'Carregando permissões do usuário...'}
         </p>
       </div>
 
@@ -588,7 +588,7 @@ const OrdersPage: React.FC = () => {
                   </p>
                 </DialogTitle>
                 <DialogDescription>
-                  Detalhes completos do pedido selecionado, incluindo itens e informacoes do cliente.
+                  Detalhes completos do pedido selecionado, incluindo itens e informacões do cliente.
                 </DialogDescription>
               </DialogHeader>
 
@@ -643,7 +643,7 @@ const OrdersPage: React.FC = () => {
                   <div className="rounded-xl border bg-muted/30 p-3 text-sm text-muted-foreground">
                     {selectedOrder.delivery_details?.trim()
                       ? selectedOrder.delivery_details
-                      : 'Sem observacoes registradas.'}
+                      : 'Sem observações registradas.'}
                   </div>
                 </section>
 
@@ -665,8 +665,8 @@ const OrdersPage: React.FC = () => {
                   ) : (
                     <p className="text-sm text-muted-foreground">
                       {profile
-                        ? 'Seu papel nao permite mover este pedido a partir do status atual.'
-                        : 'Permissoes ainda nao carregadas.'}
+                        ? 'Seu papel não permite mover este pedido a partir do status atual.'
+                        : 'Permissões ainda não carregadas.'}
                     </p>
                   )}
 

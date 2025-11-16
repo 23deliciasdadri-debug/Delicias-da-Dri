@@ -123,7 +123,7 @@ const DEFAULT_COMPONENT_CATEGORIES: ComponentCategory[] = [
   'tamanho',
   'recheio',
   'cobertura',
-  'decoracao',
+  'decoração',
 ];
 
 const ProductsPage: React.FC = () => {

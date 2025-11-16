@@ -16,19 +16,19 @@ test.describe('Quote flows', () => {
   test('aprovar orçamento pelo link público', async ({ page }) => {
     test.skip(!publicPreviewUrl, 'Defina PLAYWRIGHT_PUBLIC_PREVIEW_URL com um token válido gerado pelo app.');
     await page.goto(publicPreviewUrl!);
-    await expect(page.getByText('Visualizacao de Orcamento', { exact: false })).toBeVisible();
-    const approveButton = page.getByRole('button', { name: /Aprovar orcamento/i });
+    await expect(page.getByText('Visualização de orçamento', { exact: false })).toBeVisible();
+    const approveButton = page.getByRole('button', { name: /Aprovar orçamento/i });
     if (await approveButton.isVisible()) {
       await approveButton.click();
-      await expect(page.getByText('Orcamento aprovado com sucesso', { exact: false })).toBeVisible();
+      await expect(page.getByText('orçamento aprovado com sucesso', { exact: false })).toBeVisible();
     } else {
-      await expect(page.getByText('Este orcamento foi aprovado', { exact: false })).toBeVisible();
+      await expect(page.getByText('Este orçamento foi aprovado', { exact: false })).toBeVisible();
     }
   });
 
   test('editar orçamento pelo dashboard', async ({ page }) => {
     test.skip(!baseUrl || !editClientFilter, 'Informe PLAYWRIGHT_BASE_URL e PLAYWRIGHT_EDIT_QUOTE_CLIENT para filtrar um orçamento editável.');
-    await page.goto(`${baseUrl!}/orcamentos`);
+    await page.goto(`${baseUrl!}/orçamentos`);
     const searchInput = page.getByPlaceholder('Ex.: Maria, (11) 9...');
     await searchInput.fill(editClientFilter!);
     await page.waitForTimeout(700);

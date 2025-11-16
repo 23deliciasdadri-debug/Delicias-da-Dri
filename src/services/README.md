@@ -1,1 +1,1 @@
-﻿Services concentram integracoes externas (ex: chamadas Supabase, APIs de terceiros).
+﻿Services concentram integrações externas (ex: chamadas Supabase, APIs de terceiros).

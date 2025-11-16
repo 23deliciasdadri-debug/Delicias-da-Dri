@@ -1,5 +1,5 @@
 export type ProductType = 'PRODUTO_MENU' | 'COMPONENTE_BOLO';
-export type ComponentCategory = 'tamanho' | 'recheio' | 'cobertura' | 'decoracao' | string | null;
+export type ComponentCategory = 'tamanho' | 'recheio' | 'cobertura' | 'decoração' | string | null;
 
 export interface Product {
   id: string;

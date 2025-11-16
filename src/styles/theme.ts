@@ -1,6 +1,6 @@
 /**
  * Catálogo de tokens globais disponíveis no CSS (src/styles/index.css).
- * Centralizar esses valores em TypeScript facilita o consumo coerente
+ * Centralizar esses valores em TypeScript facilita o consumo çõerente
  * em componentes complexos e oferece autocompletar/segurança de tipos.
  */
 export const theme = {

@@ -193,8 +193,8 @@ export function buildQuoteWhatsAppShare({
   }
   const formattedDigits = digits.startsWith('55') ? digits : `55${digits}`;
   const parts = [
-    `Ola${clientName ? ` ${clientName}` : ''}! Aqui e ${businessName}.`,
-    'Preparamos um orcamento personalizado para voce.',
+    `Olá${clientName ? ` ${clientName}` : ''}!`,
+    'Preparamos um orçamento personalizado para você.',
   ];
   if (typeof totalAmount === 'number') {
     parts.push(`Valor estimado: ${formatCurrency(totalAmount)}.`);
@@ -215,7 +215,7 @@ export function buildQuotePdfFileName({
   eventDate?: string | null;
   quoteId?: string | null;
 }) {
-  const parts = ['orcamento'];
+  const parts = ['orçamento'];
   if (clientName) {
     parts.push(slugify(clientName));
   }
@@ -314,7 +314,7 @@ export async function listQuotes({
   const { data, error, count } = await query;
 
   if (error) {
-    throw new Error(`Erro ao buscar orcamentos: ${error.message}`);
+    throw new Error(`Erro ao buscar orçamentos: ${error.message}`);
   }
 
   const rows = ((data ?? []) as unknown as Array<Quote & { client: Client }>) ?? [];
@@ -355,7 +355,7 @@ export async function fetchQuoteDetails(id: string): Promise<QuoteDetails> {
     .single();
 
   if (error || !data) {
-    throw new Error(error?.message ?? 'Orcamento nao encontrado.');
+    throw new Error(error?.message ?? 'orçamento não encontrado.');
   }
 
   const parsed = data as Quote & {
@@ -372,7 +372,7 @@ export async function fetchQuoteDetails(id: string): Promise<QuoteDetails> {
 
 export async function createQuoteWithItems(quote: QuoteInsertInput, items: QuoteItemDraft[]) {
   if (!items.length) {
-    throw new Error('Adicione ao menos um item ao orcamento.');
+    throw new Error('Adicione ao menos um item ao orçamento.');
   }
 
   const quotePayload = {
@@ -382,7 +382,7 @@ export async function createQuoteWithItems(quote: QuoteInsertInput, items: Quote
 
   const { data, error } = await supabase.from('quotes').insert(quotePayload).select('*').single();
   if (error || !data) {
-    throw new Error(error?.message ?? 'Erro ao criar orcamento.');
+    throw new Error(error?.message ?? 'Erro ao criar orçamento.');
   }
   const quoteId = (data as { id: string }).id;
   const itemsPayload = buildItemsPayload(quoteId, items);
@@ -396,9 +396,9 @@ export async function createQuoteWithItems(quote: QuoteInsertInput, items: Quote
     try {
       await supabase.from('quotes').delete().eq('id', quoteId);
     } catch (cleanupError) {
-      console.error('Falha ao remover orcamento orfao apos erro nos itens:', cleanupError);
+      console.error('Falha ao remover orçamento orfao apos erro nos itens:', cleanupError);
     }
-    throw itemsError instanceof Error ? itemsError : new Error('Erro ao salvar itens do orcamento.');
+    throw itemsError instanceof Error ? itemsError : new Error('Erro ao salvar itens do orçamento.');
   }
 
   return normalizeQuoteRow(data);
@@ -410,11 +410,11 @@ export async function updateQuoteWithItems(
   items: QuoteItemDraft[],
 ) {
   if (!quoteId) {
-    throw new Error('ID do orcamento e obrigatorio.');
+    throw new Error('ID do orçamento e obrigatorio.');
   }
 
   if (!items.length) {
-    throw new Error('Adicione ao menos um item ao orcamento.');
+    throw new Error('Adicione ao menos um item ao orçamento.');
   }
 
   const quotePayload = {
@@ -431,18 +431,18 @@ export async function updateQuoteWithItems(
     .single();
 
   if (error || !data) {
-    throw new Error(error?.message ?? 'Erro ao atualizar orcamento.');
+    throw new Error(error?.message ?? 'Erro ao atualizar orçamento.');
   }
 
   const { error: deleteError } = await supabase.from('quote_items').delete().eq('quote_id', quoteId);
   if (deleteError) {
-    throw new Error(`Erro ao limpar itens do orcamento: ${deleteError.message}`);
+    throw new Error(`Erro ao limpar itens do orçamento: ${deleteError.message}`);
   }
 
   const itemsPayload = buildItemsPayload(quoteId, items);
   const { error: insertError } = await supabase.from('quote_items').insert(itemsPayload);
   if (insertError) {
-    throw new Error(`Erro ao salvar itens do orcamento: ${insertError.message}`);
+    throw new Error(`Erro ao salvar itens do orçamento: ${insertError.message}`);
   }
 
   return normalizeQuoteRow(data);
@@ -453,7 +453,7 @@ export async function regenerateQuotePublicLink(
   { expiresAt, baseUrl }: { expiresAt?: string | null; baseUrl?: string } = {},
 ): Promise<QuotePublicLinkInfo> {
   if (!quoteId) {
-    throw new Error('Selecione um orcamento para gerar o link publico.');
+    throw new Error('Selecione um orçamento para gerar o link publico.');
   }
 
   const token = generateUuid();
@@ -496,7 +496,7 @@ export async function getQuotePublicPreview(token: string): Promise<QuotePublicP
 
   const rows = (data ?? []) as QuotePublicPreviewRow[];
   if (!rows.length) {
-    throw new Error('Link invalido ou expirado.');
+    throw new Error('Link inválido ou expirado.');
   }
 
   const first = rows[0];
@@ -543,13 +543,13 @@ export async function getQuotePublicPreview(token: string): Promise<QuotePublicP
 
 export async function approveQuoteViaToken(token: string): Promise<Quote> {
   if (!token) {
-    throw new Error('Token invalido para aprovacao.');
+    throw new Error('Token inválido para aprovação.');
   }
 
   const { data, error } = await supabase.rpc('approve_quote_via_token', { input_token: token });
 
   if (error || !data) {
-    throw new Error(error?.message ?? 'Nao foi possivel aprovar este orcamento.');
+    throw new Error(error?.message ?? 'Não foi possivel aprovar este orçamento.');
   }
 
   return normalizeQuoteRow(data);
@@ -580,7 +580,7 @@ export async function deleteQuoteWithItems(id: string): Promise<{ success: true 
   }
 
   if (relatedOrders && relatedOrders.length > 0) {
-    throw new Error('Existem pedidos vinculados a este orcamento. Cancele ou remova os pedidos antes de excluir.');
+    throw new Error('Existem pedidos vinculados a este orçamento. Cancele ou remova os pedidos antes de excluir.');
   }
 
   const { error: itemsError } = await supabase.from('quote_items').delete().eq('quote_id', id);

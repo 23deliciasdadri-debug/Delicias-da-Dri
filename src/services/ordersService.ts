@@ -80,7 +80,7 @@ export async function updateOrderStatus({
 
   if (error) {
     if (httpStatus === 406 || error.code === 'PGRST116') {
-      throw new Error('Pedido nao encontrado ou voce nao tem permissao para atualizar este status.');
+      throw new Error('Pedido não encontrado ou você não tem permissao para atualizar este status.');
     }
     throw new Error(error.message);
   }

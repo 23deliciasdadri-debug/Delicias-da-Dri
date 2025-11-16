@@ -1,6 +1,6 @@
 # 7. Fluxos de Usuário Chave
 
-Este documento descreve os fluxos de trabalho mais críticos da aplicação "Delicias da Dri - Painel Administrativo". O mapeamento passo a passo dessas jornadas de usuário serve como um guia para o desenvolvimento, garantindo que a interação entre a interface (UI), a lógica de negócio (frontend) e o banco de dados (Supabase) seja coesa, eficiente e livre de erros.
+Este documento descreve os fluxos de trabalho mais críticos da aplicação "Delicias da Dri - Painel Administrativo". O mapeamento passo a passo dessas jornadas de usuário serve como um guia para o desenvolvimento, garantindo que a interação entre a interface (UI), a lógica de negócio (frontend) e o banco de dados (Supabase) seja çõesa, eficiente e livre de erros.
 
 ---
 

@@ -149,8 +149,8 @@ const BudgetsPage: React.FC<BudgetsPageProps> = ({ setCurrentPage }) => {
 
   const notifyLockedQuote = () => {
     toast({
-      title: 'Or��amento aprovado',
-      description: 'Este or��amento j�� foi aprovado e est�� bloqueado para altera����es.',
+      title: 'Orçamento aprovado',
+      description: 'Este orçamento já foi aprovado e está bloqueado para alterações.',
     });
   };
 
@@ -657,7 +657,3 @@ const BudgetsPage: React.FC<BudgetsPageProps> = ({ setCurrentPage }) => {
 };
 
 export default BudgetsPage;
-
-
-
-

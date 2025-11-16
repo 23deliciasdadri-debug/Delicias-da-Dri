@@ -28,7 +28,7 @@ O projeto depende de uma instância do Supabase para funcionar.
 4.  **Execute o Schema do Banco de Dados:**
     -   Navegue até o **SQL Editor** no seu projeto Supabase.
     -   Copie o conteúdo do arquivo `03-esquema-do-banco-de-dados.md` (convertido para SQL válido) e execute os scripts para criar todas as tabelas, relacionamentos e chaves.
-    -   **Importante:** Após criar as tabelas, navegue até **Authentication > Policies** e habilite o **Row Level Security (RLS)** para cada uma das tabelas criadas. Em seguida, adicione as políticas de acesso detalhadas no documento `05-autenticacao-e-controle-de-acesso.md`.
+    -   **Importante:** Após criar as tabelas, navegue até **Authentication > Policies** e habilite o **Row Level Security (RLS)** para cada uma das tabelas criadas. Em seguida, adicione as políticas de acesso detalhadas no documento `05-autenticação-e-controle-de-acesso.md`.
 
 ## 8.3 Configuração do Ambiente de Desenvolvimento Local
 

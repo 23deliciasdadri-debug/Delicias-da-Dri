@@ -4,7 +4,7 @@
 
 Este documento descreve o "Painel Administrativo Delicias da Dri", uma aplicação de planejamento de recursos empresariais (ERP) sob medida, concebida para ser o centro de controle operacional e estratégico da confeitaria. O objetivo fundamental desta plataforma é equipar a equipe interna com ferramentas digitais robustas para gerenciar, otimizar e escalar todas as facetas do negócio de forma centralizada e eficiente.
 
-A aplicação foi projetada para substituir processos manuais e fragmentados (planilhas, cadernos, mensagens) por um ecossistema digital coeso e uma única fonte da verdade para todos os dados operacionais. Desde a gestão detalhada de receitas e controle de inventário até o ciclo de vida completo de um pedido e o relacionamento com o cliente, o sistema visa trazer clareza, padronização e profissionalismo à operação.
+A aplicação foi projetada para substituir processos manuais e fragmentados (planilhas, cadernos, mensagens) por um ecossistema digital çõeso e uma única fonte da verdade para todos os dados operacionais. Desde a gestão detalhada de receitas e controle de inventário até o ciclo de vida completo de um pedido e o relacionamento com o cliente, o sistema visa trazer clareza, padronização e profissionalismo à operação.
 
 Construído sobre uma base tecnológica moderna, o painel está preparado para o crescimento, permitindo o acesso simultâneo de múltiplos funcionários com diferentes níveis de responsabilidade e estabelecendo as fundações para futuras expansões, como a integração com um aplicativo móvel.
 
