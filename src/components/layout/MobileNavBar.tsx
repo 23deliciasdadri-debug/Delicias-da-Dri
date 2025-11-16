@@ -10,7 +10,7 @@ interface MobileNavBarProps {
 
 export const MobileNavBar: React.FC<MobileNavBarProps> = ({ currentPage, onNavigate }) => (
   <nav
-    className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/80 bg-white/95 px-2 py-2 backdrop-blur lg:hidden"
+    className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/80 bg-card/95 px-2 py-2 backdrop-blur transition-colors dark:bg-card/60 lg:hidden"
     aria-label="Navegação principal mobile"
   >
     <ul className="grid grid-cols-5 gap-1">

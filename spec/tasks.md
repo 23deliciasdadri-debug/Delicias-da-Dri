@@ -1,10 +1,10 @@
-- [] Aplicar a migração em Supabase (`quotes` + funções `get_quote_public_preview` e `approve_quote_via_token`) e atualizar `schema_sql.md`.
-- [] Estender `quotesService` com `updateQuoteWithItems`, `regenerateQuotePublicLink`, `getQuotePublicPreview` e `approveQuoteViaToken`, além de expor helpers para WhatsApp/PDF.
-- [] Extrair o componente `BudgetForm` de `CreateBudgetPage`, adicionando suporte aos modos `create` e `edit` (prefill, salvamento e recalculo de total).
-- [] Atualizar `BudgetsPage` para acionar o modo edição (botão “Editar orçamento”, passagem do `quoteId` via estado/contexto e retorno suave para a lista).
-- [] Criar o componente `QuotePreview` (layout de documento, resumo do cliente, itens, totais e estado de aprovação) e integrá-lo ao drawer de detalhes.
-- [] Implementar `ShareQuoteDialog` com botões de copiar link, definir expiração e abrir WhatsApp usando o token gerado/regenerado.
-- [] Adicionar a geração de PDF com `@react-pdf/renderer` (`BudgetPdfDocument`) e conectar os botões “Baixar PDF” da visão interna e pública.
-- [] Criar o fluxo público em `PublicQuotePreviewApp` (roteamento condicional em `main.tsx`, chamada ao RPC, botão “Aprovar orçamento”).
-- [] Garantir que aprovação via link atualize status/`approved_at`, mostre confirmações e trave novas interações no preview interno e público.
-- [] Cobrir o novo preview/fluxos com Storybook + testes Playwright (renderização do documento, aprovação pública e edição completa de orçamento).
+- [x] Implementar `ThemeProvider` com toggle persistente (claro/escuro) ao lado do avatar e ajustar cores globais/ favicon.
+- [] Reestruturar `Sidebar` para ser colapsável (desktop/mobile), com grid em 3 faixas, logout fixo e scroll interno no bloco central.
+- [] Criar `FilterPopover` acionado por ícone de lupa e substituir os filtros de Budgets/Orders (desktop + mobile).
+- [] Revisar `Dialog`/`Drawer` garantindo overlay e conteúdo com fundo opaco e `z-index` consistente.
+- [] Ajustar `OrdersPage` (kanban) para scroll local, largura uniforme do painel lateral e responsividade mobile.
+- [] Adicionar botão “Adicionar pedido” em cada coluna e opção de excluir direto nos cards de pedido.
+- [] Transformar a coluna de status de `BudgetsPage` em seletor inline com validações/bloqueios para status “Aprovado”.
+- [] Exibir aviso de orçamento aprovado no `QuotePreview` e bloquear ações (editar, compartilhar, excluir) quando aplicável.
+- [] Implementar `createOrderFromQuote` e integrar o disparo nos fluxos de aprovação interna e pública.
+- [] Remover registros seed/bloqueios que impedem exclusões legítimas e garantir mensagens claras ao usuário.

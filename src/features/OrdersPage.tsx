@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Calendar,
@@ -46,7 +46,7 @@ import { listOrders, updateOrderStatus, type OrderWithDetails } from '../service
 
 const ALL_STATUSES: OrderStatus[] = [
   'Aprovado',
-  'Em Produção',
+  'Em ProduÃ§Ã£o',
   'Pronto para Entrega',
   'Em Entrega',
   'Entregue',
@@ -56,45 +56,45 @@ const ALL_STATUSES: OrderStatus[] = [
 const DEFAULT_STATUS_META = {
   label: 'Status',
   badgeClass: 'bg-slate-600 text-white',
-  cardBg: 'bg-slate-50/80',
+  cardBg: 'bg-card/95 text-foreground border border-border/60 shadow-lg shadow-rose-900/5 dark:bg-slate-900/70 dark:text-foreground dark:border-slate-800',
 };
 
 const STATUS_META: Record<OrderStatus, typeof DEFAULT_STATUS_META> = {
   Aprovado: {
     label: 'Aprovado',
     badgeClass: 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white',
-    cardBg: 'bg-blue-50/70',
+    cardBg: 'bg-blue-50/95 text-slate-900 border border-blue-100 shadow-blue-500/20 dark:bg-blue-500/20 dark:text-blue-50 dark:border-blue-500/40',
   },
-  'Em Produção': {
-    label: 'Em Produção',
+  'Em ProduÃ§Ã£o': {
+    label: 'Em ProduÃ§Ã£o',
     badgeClass: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white',
-    cardBg: 'bg-amber-50/70',
+    cardBg: 'bg-amber-50/95 text-slate-900 border border-amber-100 shadow-orange-500/20 dark:bg-amber-500/20 dark:text-amber-50 dark:border-amber-500/40',
   },
   'Pronto para Entrega': {
     label: 'Pronto para Entrega',
     badgeClass: 'bg-gradient-to-r from-purple-600 to-pink-500 text-white',
-    cardBg: 'bg-purple-50/70',
+    cardBg: 'bg-purple-50/95 text-slate-900 border border-purple-100 shadow-purple-500/15 dark:bg-purple-500/20 dark:text-purple-50 dark:border-purple-500/40',
   },
   'Em Entrega': {
     label: 'Em Entrega',
     badgeClass: 'bg-gradient-to-r from-orange-500 to-red-500 text-white',
-    cardBg: 'bg-orange-50/70',
+    cardBg: 'bg-orange-50/95 text-slate-900 border border-orange-100 shadow-orange-500/20 dark:bg-orange-500/20 dark:text-orange-50 dark:border-orange-500/40',
   },
   Entregue: {
     label: 'Entregue',
     badgeClass: 'bg-gradient-to-r from-emerald-500 to-green-500 text-white',
-    cardBg: 'bg-emerald-50/70',
+    cardBg: 'bg-emerald-50/95 text-slate-900 border border-emerald-100 shadow-emerald-500/15 dark:bg-emerald-500/20 dark:text-emerald-50 dark:border-emerald-500/40',
   },
   Cancelado: {
     label: 'Cancelado',
     badgeClass: 'bg-gradient-to-r from-rose-600 to-red-500 text-white',
-    cardBg: 'bg-rose-50/70',
+    cardBg: 'bg-rose-50/95 text-slate-900 border border-rose-100 shadow-rose-500/15 dark:bg-rose-500/20 dark:text-rose-50 dark:border-rose-500/40',
   },
 };
 
 const ROLE_VISIBLE_STATUSES: Record<ProfileRole, OrderStatus[]> = {
   admin: ALL_STATUSES,
-  kitchen: ['Aprovado', 'Em Produção'],
+  kitchen: ['Aprovado', 'Em ProduÃ§Ã£o'],
   delivery: ['Pronto para Entrega', 'Em Entrega'],
 };
 
@@ -103,8 +103,8 @@ const ROLE_TRANSITIONS: Record<
   Partial<Record<OrderStatus, OrderStatus[]>>
 > = {
   kitchen: {
-    Aprovado: ['Em Produção'],
-    'Em Produção': ['Pronto para Entrega'],
+    Aprovado: ['Em ProduÃ§Ã£o'],
+    'Em ProduÃ§Ã£o': ['Pronto para Entrega'],
   },
   delivery: {
     'Pronto para Entrega': ['Em Entrega'],
@@ -244,7 +244,7 @@ const getWhatsAppLink = (phone?: string | null, clientName?: string | null) => {
     return null;
   }
   const text = encodeURIComponent(
-    `Olá${clientName ? ` ${clientName}` : ''}! Aqui é a Delícias da Dri com novidades do seu pedido.`,
+    `OlÃ¡${clientName ? ` ${clientName}` : ''}! Aqui Ã© a DelÃ­cias da Dri com novidades do seu pedido.`,
   );
   return `https://wa.me/${digits}?text=${text}`;
 };
@@ -336,8 +336,8 @@ const OrdersPage: React.FC = () => {
     if (!details) {
       toast({
         status: 'info',
-        title: 'Sem endereço disponível',
-        description: 'Este pedido ainda não possui detalhes de entrega registrados.',
+        title: 'Sem endereÃ§o disponÃ­vel',
+        description: 'Este pedido ainda nÃ£o possui detalhes de entrega registrados.',
       });
       return;
     }
@@ -346,12 +346,12 @@ const OrdersPage: React.FC = () => {
         await navigator.clipboard.writeText(details);
         toast({
           status: 'success',
-          title: 'Endereço copiado',
+          title: 'EndereÃ§o copiado',
           description: 'Cole no app de entregas ou compartilhe com o seu time.',
         });
         return;
       }
-      throw new Error('Clipboard indisponível');
+      throw new Error('Clipboard indisponÃ­vel');
     } catch {
       toast({
         status: 'info',
@@ -417,8 +417,8 @@ const OrdersPage: React.FC = () => {
     if (!canMove) {
       toast({
         status: 'error',
-        title: 'Transição não permitida',
-        description: 'Seu papel atual não pode mover o pedido para esse status.',
+        title: 'TransiÃ§Ã£o nÃ£o permitida',
+        description: 'Seu papel atual nÃ£o pode mover o pedido para esse status.',
       });
       return;
     }
@@ -569,7 +569,7 @@ const OrdersPage: React.FC = () => {
       )}
 
       <Dialog open={Boolean(selectedOrder)} onOpenChange={handleModalChange}>
-        <DialogContent className="max-w-2xl bg-white">
+        <DialogContent className="max-w-2xl bg-card">
           {selectedOrder ? (
             <>
               <DialogHeader>
@@ -583,7 +583,7 @@ const OrdersPage: React.FC = () => {
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Entrega em {formatDeliveryDate(selectedOrder.delivery_date)} •{' '}
+                    Entrega em {formatDeliveryDate(selectedOrder.delivery_date)} â€¢{' '}
                     {currencyFormatter.format(selectedOrder.total_amount ?? 0)}
                   </p>
                 </DialogTitle>
@@ -716,7 +716,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ status, meta, count, childr
     <div className="flex-shrink-0 w-80">
       <div
         ref={setNodeRef}
-        className={`flex h-full flex-col rounded-3xl border bg-white/85 p-4 shadow-sm transition-all ${
+        className={`flex h-full flex-col rounded-3xl border bg-card/85 p-4 shadow-sm transition-all ${
           isOver ? 'border-rose-300 shadow-rose-100' : 'border-border/70'
         }`}
       >
@@ -794,7 +794,7 @@ const KanbanOrderCard: React.FC<KanbanOrderCardProps> = ({
               <p className="text-xs text-muted-foreground">{order.client?.phone ?? 'Sem telefone'}</p>
             </div>
             <div className="text-right">
-              <Badge className="bg-white text-rose-600 border border-rose-100">
+              <Badge className="border border-rose-100 bg-card text-rose-600">
                 {currencyFormatter.format(order.total_amount ?? 0)}
               </Badge>
               {pending ? <Loader2 className="mt-2 size-4 animate-spin text-rose-500" /> : null}
@@ -813,7 +813,7 @@ const KanbanOrderCard: React.FC<KanbanOrderCardProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-9 rounded-full border border-rose-100 bg-white/80"
+                className="size-9 rounded-full border border-rose-100 bg-card/80"
                 asChild
               >
                 <a href={phoneHref} onPointerDown={stopPropagation} onClick={stopPropagation} aria-label="Ligar para o cliente">
@@ -825,7 +825,7 @@ const KanbanOrderCard: React.FC<KanbanOrderCardProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-9 rounded-full border border-emerald-100 bg-white/80"
+                className="size-9 rounded-full border border-emerald-100 bg-card/80"
                 asChild
               >
                 <a
@@ -843,13 +843,13 @@ const KanbanOrderCard: React.FC<KanbanOrderCardProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="size-9 rounded-full border border-slate-200 bg-white/80"
+              className="size-9 rounded-full border border-slate-200 bg-card/80"
               onPointerDown={stopPropagation}
               onClick={(event) => {
                 stopPropagation(event);
                 onCopyDeliveryDetails(order.delivery_details);
               }}
-              aria-label="Copiar endereço"
+              aria-label="Copiar endereÃ§o"
             >
               <MapPin className="size-4 text-slate-700" />
             </Button>
@@ -873,7 +873,7 @@ const OrderPreviewCard: React.FC<OrderPreviewCardProps> = ({ order, meta }) => (
           <p className="text-xs uppercase text-muted-foreground tracking-wide">Cliente</p>
           <p className="font-semibold text-lg text-foreground">{order.client?.name ?? 'Cliente'}</p>
         </div>
-        <Badge className="bg-white text-rose-600 border border-rose-100">
+        <Badge className="border border-rose-100 bg-card text-rose-600">
           {currencyFormatter.format(order.total_amount ?? 0)}
         </Badge>
       </div>
@@ -888,3 +888,6 @@ const OrderPreviewCard: React.FC<OrderPreviewCardProps> = ({ order, meta }) => (
     </CardContent>
   </Card>
 );
+
+
+

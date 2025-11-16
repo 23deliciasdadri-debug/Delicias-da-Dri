@@ -27,6 +27,9 @@ export interface DataTableProps<T> {
   onRowClick?: (row: T) => void;
 }
 
+const isActivationKey = (event: React.KeyboardEvent<HTMLElement>) =>
+  event.key === 'Enter' || event.key === ' ';
+
 export const DataTable = <T,>({
   data,
   columns,
@@ -40,7 +43,7 @@ export const DataTable = <T,>({
 }: DataTableProps<T>) => {
   if (isLoading) {
     return (
-      <div className={cn('rounded-2xl border border-border/60 bg-white p-6 shadow-sm', className)}>
+      <div className={cn('rounded-2xl border border-border/60 bg-card p-6 shadow-sm', className)}>
         <p className="mb-4 text-sm font-medium text-muted-foreground">{loadingText}</p>
         <SkeletonList variant="row" count={5} />
       </div>
@@ -49,7 +52,12 @@ export const DataTable = <T,>({
 
   if (!data.length) {
     return (
-      <div className={cn('rounded-2xl border border-dashed border-rose-200 bg-rose-50/50 p-6', className)}>
+      <div
+        className={cn(
+          'rounded-2xl border border-dashed border-rose-200/70 bg-card/80 p-6 shadow-sm dark:bg-slate-900/40',
+          className,
+        )}
+      >
         {emptyState ?? (
           <EmptyState
             compact
@@ -65,12 +73,12 @@ export const DataTable = <T,>({
     <div className={cn('space-y-4', className)}>
       <div
         className={cn(
-          'hidden overflow-x-auto rounded-2xl border border-border/60 bg-white shadow-sm md:block',
+          'hidden overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-sm md:block',
           containerClassName,
         )}
       >
         <table className="w-full text-sm">
-          <thead className="bg-gradient-to-r from-rose-50 to-orange-50 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <thead className="bg-muted/70 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground dark:bg-muted/20">
             <tr>
               {columns.map((column) => (
                 <th
@@ -96,9 +104,21 @@ export const DataTable = <T,>({
                   key={key}
                   className={cn(
                     'border-t border-border/60 transition-colors',
-                    clickable ? 'cursor-pointer hover:bg-rose-50/60' : 'hover:bg-rose-50/40',
+                    clickable
+                      ? 'cursor-pointer hover:bg-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:hover:bg-slate-900/40'
+                      : 'hover:bg-muted/60 dark:hover:bg-slate-900/30',
                   )}
+                  role={clickable ? 'button' : undefined}
+                  tabIndex={clickable ? 0 : undefined}
                   onClick={() => (onRowClick ? onRowClick(row) : undefined)}
+                  onKeyDown={(event) => {
+                    if (!onRowClick || !isActivationKey(event)) {
+                      return;
+                    }
+                    event.preventDefault();
+                    onRowClick(row);
+                  }}
+                  aria-label={clickable ? 'Abrir detalhes do registro' : undefined}
                 >
                   {columns.map((column) => (
                     <td
@@ -126,10 +146,22 @@ export const DataTable = <T,>({
             <div
               key={`mobile-${key}`}
               className={cn(
-                'rounded-2xl border border-border/60 bg-white p-4 shadow-sm',
-                onRowClick ? 'cursor-pointer' : undefined,
+                'rounded-2xl border border-border/60 bg-card p-4 shadow-sm transition-colors',
+                onRowClick
+                  ? 'cursor-pointer hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:hover:bg-slate-900/40'
+                  : undefined,
               )}
+              role={onRowClick ? 'button' : undefined}
+              tabIndex={onRowClick ? 0 : undefined}
               onClick={() => (onRowClick ? onRowClick(row) : undefined)}
+              onKeyDown={(event) => {
+                if (!onRowClick || !isActivationKey(event)) {
+                  return;
+                }
+                event.preventDefault();
+                onRowClick(row);
+              }}
+              aria-label={onRowClick ? 'Abrir detalhes do registro' : undefined}
             >
               <div className="flex flex-col gap-3">
                 {columns

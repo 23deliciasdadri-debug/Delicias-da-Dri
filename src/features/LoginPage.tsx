@@ -31,13 +31,13 @@ const LoginPage: React.FC = () => {
   const errorMessage = formError ?? authError;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-50 via-pink-50 to-orange-50 p-4 relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-rose-200/30 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-orange-200/30 rounded-full blur-3xl" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-background via-muted/50 to-background p-4 text-foreground transition-colors dark:from-background dark:via-slate-950 dark:to-slate-950">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-accent/20 blur-3xl" />
       </div>
 
-      <Card className="w-full max-w-md shadow-2xl border-0 relative backdrop-blur-sm bg-white/90">
+      <Card className="relative w-full max-w-md border-0 bg-card/90 backdrop-blur-sm shadow-2xl transition-colors dark:bg-card/70">
         <CardHeader className="text-center space-y-6 pb-8">
           <div className="mx-auto w-20 h-20 gradient-primary rounded-3xl flex items-center justify-center shadow-lg shadow-rose-500/30 rotate-3 hover:rotate-0 transition-transform duration-300">
             <Cake className="w-12 h-12 text-white" />

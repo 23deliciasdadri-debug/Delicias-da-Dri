@@ -3,6 +3,7 @@ import { Menu } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '../../lib/utils';
+import { ThemeToggle } from '../theme/ThemeToggle';
 
 interface TopBarProps {
   title: string;
@@ -25,7 +26,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 }) => (
   <header
     className={cn(
-      'sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-border/70 bg-white/80 px-4 py-3 backdrop-blur lg:px-8',
+      'sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-border/60 bg-card/80 px-4 py-3 backdrop-blur transition-colors lg:px-8',
       className,
     )}
   >
@@ -48,7 +49,8 @@ export const TopBar: React.FC<TopBarProps> = ({
     </div>
     <div className="flex items-center gap-3">
       {actions}
-      <div className="flex items-center gap-2 rounded-full border border-border/70 bg-white px-3 py-1.5 shadow-sm">
+      <ThemeToggle />
+      <div className="flex items-center gap-2 rounded-full border border-border/60 bg-card/90 px-3 py-1.5 shadow-sm">
         <Avatar className="h-9 w-9">
           <AvatarImage src={avatarUrl ?? undefined} alt={userName ?? 'Usuário'} />
           <AvatarFallback>

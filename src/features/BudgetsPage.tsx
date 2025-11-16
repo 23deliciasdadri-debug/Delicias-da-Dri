@@ -19,14 +19,14 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import {
   AlertCircle,
-  Calendar,
   CheckCircle2,
+  Edit3,
   ListChecks,
   Loader2,
   MoreVertical,
   Plus,
+  Share2,
   Trash2,
-  User2,
 } from 'lucide-react';
 import { Page } from '../components/layout/Sidebar';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
@@ -45,6 +45,9 @@ import {
   type QuoteDetails,
   type QuoteListItem,
 } from '../services/quotesService';
+import BudgetForm from './budgets/BudgetForm';
+import QuotePreview from './budgets/QuotePreview';
+import ShareQuoteDialog from './budgets/ShareQuoteDialog';
 
 interface BudgetsPageProps {
   setCurrentPage: (page: Page) => void;
@@ -78,6 +81,11 @@ const BudgetsPage: React.FC<BudgetsPageProps> = ({ setCurrentPage }) => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [detailsQuote, setDetailsQuote] = useState<QuoteDetails | null>(null);
   const [isDetailsLoading, setIsDetailsLoading] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingQuote, setEditingQuote] = useState<QuoteDetails | null>(null);
+  const [isEditLoading, setIsEditLoading] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [shareQuote, setShareQuote] = useState<QuoteDetails | null>(null);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedSearch(searchInput), 350);
@@ -139,8 +147,30 @@ const BudgetsPage: React.FC<BudgetsPageProps> = ({ setCurrentPage }) => {
     }
   };
 
+  const notifyLockedQuote = () => {
+    toast({
+      title: 'Or��amento aprovado',
+      description: 'Este or��amento j�� foi aprovado e est�� bloqueado para altera����es.',
+    });
+  };
+
+  const resolveQuoteStatus = (quoteId: string, fallbackStatus?: QuoteStatus) => {
+    if (fallbackStatus) {
+      return fallbackStatus;
+    }
+    if (detailsQuote?.id === quoteId) {
+      return detailsQuote.status;
+    }
+    const match = quotesData?.items?.find((quote) => quote.id === quoteId);
+    return match?.status;
+  };
+
   const handleStatusChange = async (quoteId: string, status: QuoteStatus) => {
     if (!isAdmin) {
+      return;
+    }
+    if (resolveQuoteStatus(quoteId) === 'Aprovado') {
+      notifyLockedQuote();
       return;
     }
     const updated = await updateStatusMutation.mutate({ id: quoteId, status });
@@ -163,6 +193,10 @@ const BudgetsPage: React.FC<BudgetsPageProps> = ({ setCurrentPage }) => {
     if (!isAdmin) {
       return;
     }
+    if (resolveQuoteStatus(quoteId) === 'Aprovado') {
+      notifyLockedQuote();
+      return;
+    }
     const confirmed = window.confirm('Deseja remover este orçamento e seus itens?');
     if (!confirmed) {
       return;
@@ -180,6 +214,81 @@ const BudgetsPage: React.FC<BudgetsPageProps> = ({ setCurrentPage }) => {
       title: 'Orçamento removido',
       description: 'O orçamento foi excluído com sucesso.',
     });
+  };
+
+  const resetEditState = () => {
+    setIsEditOpen(false);
+    setEditingQuote(null);
+    setIsEditLoading(false);
+  };
+
+  const handleEditSuccess = async (quoteId: string) => {
+    resetEditState();
+    await refetchQuotes();
+    if (detailsQuote?.id === quoteId) {
+      await handleOpenDetails(quoteId);
+    }
+  };
+
+  const handleStartEdit = async (quoteId: string, status?: QuoteStatus) => {
+    if (!isAdmin) {
+      return;
+    }
+    const currentStatus = resolveQuoteStatus(quoteId, status);
+    if (currentStatus === 'Aprovado') {
+      notifyLockedQuote();
+      return;
+    }
+    setIsDetailsOpen(false);
+    setIsEditOpen(true);
+    setIsEditLoading(true);
+    try {
+      const quoteData = await fetchQuoteDetails(quoteId);
+      setEditingQuote(quoteData);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao carregar orçamento para edição.';
+      toast({
+        title: 'Erro ao abrir edição',
+        description: message,
+        status: 'error',
+      });
+      resetEditState();
+    } finally {
+      setIsEditLoading(false);
+    }
+  };
+
+  const handleOpenShare = (quote: QuoteDetails) => {
+    if (!isAdmin) {
+      return;
+    }
+    if (quote.status === 'Aprovado') {
+      notifyLockedQuote();
+      return;
+    }
+    setShareQuote(quote);
+    setIsShareOpen(true);
+  };
+
+  const handleLinkUpdated = ({ token, expiresAt }: { token: string; expiresAt: string | null }) => {
+    setDetailsQuote((prev) =>
+      prev
+        ? {
+            ...prev,
+            public_link_token: token,
+            public_link_token_expires_at: expiresAt,
+          }
+        : prev,
+    );
+    setShareQuote((prev) =>
+      prev
+        ? {
+            ...prev,
+            public_link_token: token,
+            public_link_token_expires_at: expiresAt,
+          }
+        : prev,
+    );
   };
 
   const totalItems = quotesData?.total ?? 0;
@@ -306,22 +415,32 @@ const BudgetsPage: React.FC<BudgetsPageProps> = ({ setCurrentPage }) => {
       cell: (quote) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm">
+            <Button variant="ghost" size="icon-sm" data-testid="quote-actions-trigger">
               <MoreVertical className="size-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 bg-white border border-border shadow-xl">
+          <DropdownMenuContent align="end" className="w-48 border border-border bg-card shadow-xl">
             <DropdownMenuItem
               className="cursor-pointer flex items-center gap-2"
               onClick={() => void handleOpenDetails(quote.id)}
+              data-testid="quote-action-details"
             >
               <ListChecks className="size-4 text-rose-500" />
               Ver detalhes
             </DropdownMenuItem>
             <DropdownMenuItem
+              className="cursor-pointer flex items-center gap-2"
+              disabled={!isAdmin || quote.status === 'Aprovado'}
+              onClick={() => void handleStartEdit(quote.id, quote.status)}
+              data-testid="quote-action-edit"
+            >
+              <Edit3 className="size-4 text-slate-600" />
+              Editar orçamento
+            </DropdownMenuItem>
+            <DropdownMenuItem
               className="cursor-pointer flex items-center gap-2 text-destructive"
               onClick={() => void handleDeleteQuote(quote.id)}
-              disabled={!isAdmin || deleteQuoteMutation.isMutating}
+              disabled={!isAdmin || deleteQuoteMutation.isMutating || quote.status === 'Aprovado'}
             >
               <Trash2 className="size-4" />
               Excluir orçamento
@@ -329,7 +448,7 @@ const BudgetsPage: React.FC<BudgetsPageProps> = ({ setCurrentPage }) => {
             {STATUS_ACTIONS.map((statusOption) => (
               <DropdownMenuItem
                 key={statusOption}
-                disabled={!isAdmin || updateStatusMutation.isMutating}
+                disabled={!isAdmin || updateStatusMutation.isMutating || quote.status === 'Aprovado'}
                 className="cursor-pointer flex items-center gap-2"
                 onClick={() => void handleStatusChange(quote.id, statusOption)}
               >
@@ -450,94 +569,89 @@ const BudgetsPage: React.FC<BudgetsPageProps> = ({ setCurrentPage }) => {
           }
         }}
       >
-        <DialogContent className="max-w-3xl bg-white">
+        <DialogContent className="max-w-3xl bg-card">
           <DialogHeader>
             <DialogTitle>Resumo do orçamento</DialogTitle>
             <DialogDescription>
               Visualize os itens enviados ao cliente e notas complementares.
             </DialogDescription>
           </DialogHeader>
-
           {isDetailsLoading ? (
             <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
               <Loader2 className="size-6 animate-spin text-rose-500" />
               <span>Carregando informações...</span>
             </div>
           ) : detailsQuote ? (
-            <div className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-lg border border-dashed border-rose-200 p-4">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Cliente</p>
-                  <p className="font-semibold flex items-center gap-2 text-foreground mt-1">
-                    <User2 className="size-4 text-rose-500" />
-                    {detailsQuote.client?.name ?? 'Cliente removido'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{detailsQuote.client?.phone}</p>
-                  <p className="text-sm text-muted-foreground">{detailsQuote.client?.email || '—'}</p>
-                </div>
-                <div className="rounded-lg border border-dashed border-rose-200 p-4">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Evento</p>
-                  <p className="font-semibold flex items-center gap-2 text-foreground mt-1">
-                    <Calendar className="size-4 text-rose-500" />
-                    {detailsQuote.event_type || 'Não informado'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {detailsQuote.event_date
-                      ? dateFormatter.format(new Date(detailsQuote.event_date))
-                      : 'Sem data'}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-dashed border-rose-200 p-4">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Total</p>
-                  <p className="text-3xl font-semibold text-foreground mt-1">
-                    {currencyFormatter.format(detailsQuote.total_amount)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border overflow-hidden">
-                <div className="bg-muted px-4 py-3 text-sm font-semibold text-muted-foreground uppercase">
-                  Itens do orçamento
-                </div>
-                <div className="divide-y divide-border">
-                  {detailsQuote.items.length ? (
-                    detailsQuote.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="grid grid-cols-[2fr_1fr_1fr_1fr] px-4 py-3 text-sm items-center"
-                      >
-                        <span>{item.product_name_copy}</span>
-                        <span className="text-center">{item.quantity} un.</span>
-                        <span className="text-right">
-                          {currencyFormatter.format(item.price_at_creation)}
-                        </span>
-                        <span className="text-right font-semibold">
-                          {currencyFormatter.format(item.price_at_creation * item.quantity)}
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-                      Nenhum item cadastrado.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {detailsQuote.notes && (
-                <div className="rounded-xl border border-dashed border-rose-200 p-4">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-                    Observações
-                  </p>
-                  <p className="text-sm text-foreground whitespace-pre-wrap">{detailsQuote.notes}</p>
-                </div>
-              )}
-            </div>
+            <QuotePreview
+              quote={detailsQuote}
+              headerActions={
+                isAdmin ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" onClick={() => void handleOpenShare(detailsQuote)} disabled={detailsQuote.status === 'Aprovado'}>
+                      <Share2 className="size-4 mr-2" />
+                      Compartilhar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleStartEdit(detailsQuote.id, detailsQuote.status)}
+                      disabled={detailsQuote.status === 'Aprovado'}
+                    >
+                      <Edit3 className="size-4 mr-2" />
+                      Editar orçamento
+                    </Button>
+                  </div>
+                ) : null
+              }
+              footerActions={null}
+            />
           ) : (
             <p className="text-sm text-muted-foreground">Selecione um orçamento para visualizar.</p>
           )}
         </DialogContent>
       </Dialog>
+      <Dialog
+        open={isEditOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            resetEditState();
+          }
+        }}
+      >
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-card">
+          <DialogHeader>
+            <DialogTitle>Editar orçamento</DialogTitle>
+            <DialogDescription>Atualize os dados e salve para refletir na listagem.</DialogDescription>
+          </DialogHeader>
+          {isEditLoading && !editingQuote ? (
+            <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
+              <Loader2 className="size-6 animate-spin text-rose-500" />
+              <span>Carregando informações...</span>
+            </div>
+          ) : (
+            <BudgetForm
+              mode="edit"
+              quote={editingQuote}
+              isFetchingQuote={isEditLoading}
+              onBack={resetEditState}
+              onSuccess={({ quoteId }) => void handleEditSuccess(quoteId)}
+              title="Editar orçamento"
+              subtitle="Faça ajustes e salve para manter o histórico atualizado."
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+      <ShareQuoteDialog
+        open={isShareOpen}
+        onOpenChange={(open) => {
+          setIsShareOpen(open);
+          if (!open) {
+            setShareQuote(null);
+          }
+        }}
+        quote={shareQuote}
+        onLinkUpdated={handleLinkUpdated}
+      />
     </div>
   );
 };

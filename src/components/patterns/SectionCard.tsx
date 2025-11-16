@@ -38,7 +38,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({
 }) => (
   <Card
     className={cn(
-      'rounded-2xl border border-border/70 bg-white/90 shadow-glow-rose backdrop-blur',
+      'rounded-2xl border border-border/70 bg-card/90 shadow-glow-rose backdrop-blur transition-colors dark:bg-card/60',
       className,
     )}
     {...props}

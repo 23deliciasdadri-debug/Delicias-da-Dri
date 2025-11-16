@@ -1,125 +1,71 @@
 ## Visão geral
 
-O módulo de orçamentos já consegue criar propostas completas, porém depois do envio inicial não há como revisar ou ajustar valores, tampouco uma maneira segura de compartilhar esse conteúdo com o cliente. Vamos evoluir o fluxo para que o orçamentista edite qualquer orçamento, gere um link público somente-leitura com visualização elegante, permita aprovação direta pelo cliente e ofereça botões para WhatsApp e PDF. O foco continua sendo React + Supabase, mantendo a arquitetura atual do app, mas adicionando uma rota pública desacoplada do `AuthProvider`.
+O produto já atende o fluxo básico de orçamentos/pedidos, porém a experiência do operador e do cliente está inconsistente: tema único, navegação rígida, telas com scroll quebrado, modais transparentes, filtros ocupando espaço e impedimentos para excluir/automatizar registros. Vamos focar em três pilares — experiência visual (tema, sidebar, filtros), estabilidade estrutural (modais, kanban, responsividade) e automações (edição inline, criação de pedidos a partir de orçamentos) — mantendo a stack atual (React + Vite + Supabase) e entregando melhorias incrementais.
 
-### Problemas atuais
+## Problemas atuais
 
-- Orçamentos criados ficam “congelados”, obrigando a refazer tudo para corrigir erros ou atualizar preços.
-- A visualização disponível em `BudgetsPage` é uma modal interna nada amigável para o cliente final.
-- Não há mecanismo de compartilhamento externo; o cliente não consegue aprovar sozinho e o time precisa explicar preços por chat.
-- O app não exporta PDF e não há botão rápido de envio para WhatsApp.
+1. **UX limitada**: não existe modo escuro, o favicon ainda é genérico e a sidebar ocupa muito espaço, especialmente no desktop.
+2. **Layout inconsistente**: o menu de pedidos tem largura menor, o kanban faz a página inteira rolar (quebrando mobile) e modais abrem transparentes.
+3. **Fluxos truncados**: filtros e buscas ocupam área fixa em todas as páginas; o menu lateral cresce demais e empurra o botão de logout.
+4. **Pedidos e orçamentos**: não há CTA para criar/excluir pedidos direto nas colunas, o status dos orçamentos só muda via menu, e alguns dados “seed” não podem ser removidos.
+5. **Integração**: quando um orçamento é aprovado, o pedido correspondente não é criado automaticamente.
 
-### Objetivos
+## Objetivos
 
-1. Permitir edição completa de um orçamento existente (cliente, itens, observações) mantendo histórico básico de atualização.
-2. Criar uma visualização “preview” com aparência de documento, tanto para uso interno quanto para um link público protegido por token.
-3. Inserir botões de compartilhamento (WhatsApp, copiar link) e exportação em PDF.
-4. Implementar aprovação via link público que altera o status da proposta para `Aprovado` automaticamente e registra data/hora.
-5. Garantir que o cliente não tenha acesso a nenhuma outra parte do app ao usar o link.
+1. Entregar modo claro/escuro com toggle persistente e atualizar o branding (favicon + ícones).  
+2. Unificar a navegação lateral: colapsável em desktop, com scroll interno, logout fixo e filtros compactados em popover.  
+3. Revisar o `OrdersPage`: kanban responsivo com scroll local, botões de criação nos rodapés das colunas e exclusão direta nos cards.  
+4. Corrigir o sistema de modais para garantir overlay e fundo opacos em qualquer cenário.  
+5. Transformar o status dos orçamentos em um seletor inline e bloquear edições/deleções quando o orçamento estiver aprovado.  
+6. Automatizar a criação de pedidos ao aprovar orçamentos (via painel ou link público).  
+7. Limpar registros “seed” ou constraints que impedem exclusões legítimas e garantir comunicação clara de erros.  
 
 ## Arquitetura proposta
 
-### 1. Modelagem e Supabase
+### 1. Tema e branding
+- Adicionar um `ThemeProvider` (ou estender o existente) com persistência em `localStorage`.  
+- Criar `ThemeToggle` exibido ao lado do avatar/ícone de admin e aplicar tokens `dark:` nas shells principais (`AppLayout`, `Sidebar`, modais).  
+- Exportar o ícone de bolo já usado no painel como `favicon.svg`/`favicon.png` e atualizar `index.html` + manifest.
 
-- **Novas colunas em `quotes`:**
-  - `updated_at timestamptz default now()` – para facilitar ordenação por últimas edições.
-  - `approved_at timestamptz` – salva quando o status vira `Aprovado` (via painel ou link público).
-  - `public_link_token uuid` – token único ativo para compartilhamento.
-  - `public_link_token_expires_at timestamptz` – opcional, para invalidar o link.
-  - `public_link_last_viewed_at timestamptz` – telemetria simples.
-- **Função segura para preview público:** `get_quote_public_preview(token uuid)` retorna orçamento, cliente e itens. Rodará como `security definer`, `select` direto nas tabelas mesmo quando o cliente estiver anônimo.
-- **Função para aprovar via link:** `approve_quote_via_token(token uuid)` atualiza status/`approved_at` somente quando o token estiver válido.
-- **Políticas:** liberar `select`/`rpc` dessas funções para `anon`, mantendo RLS restrita nas tabelas.
+### 2. Sidebar colapsável
+- Reestruturar o componente `Sidebar` usando `grid-rows: auto 1fr auto`, com o menu rolando separadamente do cabeçalho e do bloco de logout.  
+- Adicionar botão de collapse que reduz para uma coluna estreita (apenas ícones + tooltip) tanto no desktop quanto no mobile drawer; preferência salva localmente.
+- Ajustar `AppLayout` para responder à largura da sidebar com transição suave.
 
-### 2. Reuso do formulário de orçamento
+### 3. Filtros compactos
+- Criar `FilterPopover`/`FilterSheet` acionado por um botão com ícone de lupa.  
+- Migrar campos atuais (busca, status, datas) de `BudgetsPage`, `OrdersPage` e demais listas para dentro desse popover, preservando estado e validando no submit.
 
-- Transformar `CreateBudgetPage` em um wrapper de um novo componente `BudgetForm` responsável por:
-  - receber `mode: 'create' | 'edit'`.
-  - carregar dados com `fetchQuoteDetails` quando em modo edição.
-  - sincronizar itens via `react-hook-form` reaproveitando o schema existente.
-- Novos serviços em `quotesService.ts`:
-  - `updateQuoteWithItems(quoteId, payload, items)` – atualiza o registro da tabela `quotes`, remove/atualiza `quote_items` com transação.
-  - `regenerateQuotePublicLink(quoteId, expiresAt?)` – cria token UUID e salva campos.
-  - `getQuotePublicPreview(token)` + `approveQuoteViaToken(token)` para o modo público.
-- Inserir no `BudgetsPage.tsx` botões “Editar orçamento” e “Compartilhar” dentro do drawer/modal de detalhes. Ao clicar em editar, o usuário vai para o mesmo fluxo do formulário, carregando o orçamento escolhido e permitindo salvar em qualquer status.
+### 4. Modais e componentes Radix
+- Revisar `src/components/ui/dialog.tsx` para garantir que `DialogContent` sempre possua `bg-popover` (ou `bg-white`), `shadow` e `border`.  
+- Forçar `DialogPortal` a incluir `Overlay` opaco com blur leve e garantir `z-index` alto para evitar herança de transparência.
 
-### 3. Tela de preview (interna e pública)
+### 5. Orders (Kanban + ações)
+- Ajustar o container principal para usar `overflow-hidden` e permitir que o kanban possua `max-height` calculado (viewport – header – filtros).  
+- Cada coluna terá o botão “Adicionar pedido” no rodapé (abre modal).  
+- Os cards exibem ícone de exclusão (`Trash2`), disparando confirmação e chamada a `deleteOrder`.  
+- Garantir responsividade com scroll horizontal em telas menores.
 
-- Criar o componente `QuotePreview` contendo:
-  - identidade visual similar a um documento (logo no topo esquerdo, bloco com dados do cliente/evento, tabela de itens com subtotais, bloco de observações).
-  - CTA’s: `Baixar PDF`, `Compartilhar`, `Enviar WhatsApp` (no contexto interno) e `Aprovar orçamento` (no público).
-- **Rota interna:** nova aba dentro de `BudgetsPage` (drawer com abas “Resumo” e “Preview”) usando `QuotePreview` para que o time valide antes de enviar.
-- **Rota pública:** alterar `src/main.tsx` para inspecionar `window.location.pathname`. Se iniciar com `/orcamento/preview/:token`, renderizamos `<PublicQuotePreviewApp>` fora do `AuthProvider`. Essa página:
-  - chama `getQuotePublicPreview(token)` com um loading elegante.
-  - mantém estado de aprovação, exibindo toasts em caso de token inválido/expirado.
-  - possui botão “Fale pelo WhatsApp” com mensagem padrão e telefone do cliente.
-  - restringe ações a `approve` e `download pdf`, sem mostrar menus do app principal.
+### 6. Budgets (status e travas)
+- A badge de status vira um `Select` inline; ao mudar para “Aprovado” registramos `approved_at`, mostramos feedback e bloqueamos futuras edições/deleções.  
+- `QuotePreview` passa a exibir aviso verde quando aprovado e o drawer interno/menus de ação respeitam o bloqueio.
 
-### 4. Aprovação e rastreabilidade
+### 7. Automatização de pedidos
+- Criar serviço `createOrderFromQuote` em `quotesService` (ou novo `ordersService`) que gera pedido + itens baseado nos dados do orçamento e cliente.  
+- Integrar essa chamada após `updateQuoteStatus` (quando vira “Aprovado”) e dentro de `approve_quote_via_token`.  
+- Garantir idempotência verificando `orders.quote_id`.
 
-- Ao clicar em “Aprovar orçamento”:
-  - **Painel interno:** usa `updateQuoteStatus` (já existente) + grava `approved_at`.
-  - **Link público:** chama `approveQuoteViaToken`, que confirma token válido, atualiza status/`approved_at`, grava `public_link_last_viewed_at` e retorna payload atualizado para refletir imediatamente.
-- Em ambos os casos, o status passa para `Aprovado`, o preview mostra um selo informando que o orçamento já foi aprovado e o botão é substituído por “Status: Aprovado”.
+### 8. Limpeza de dados e exclusões
+- Auditar scripts/seed para remover registros que não podem ser apagados.  
+- Ajustar mensagens de erro quando o Supabase impedir exclusão (ex.: pedido vinculado), e liberar remoção quando não houver dependências.
 
-### 5. Compartilhamento (WhatsApp + link)
+### 9. Testes e QA
+- Storybook para `QuotePreview` (estados pendente/aprovado) e novos componentes (`ThemeToggle`, `FilterPopover`, `OrderCard`).  
+- Playwright cobrindo: modo dark toggle, collapse da sidebar, criação/exclusão de pedido na coluna, edição inline de status e aprovação pública (com criação automática de pedido).  
+- Scripts manuais para validar resposividade no mobile e a troca de favicons.
 
-- No painel interno, adicionar dropdown `Compartilhar` com:
-  - `Copiar link` – chama `regenerateQuotePublicLink` se ainda não existir token e copia `https://app.deliciasdAdri.com/orcamento/preview/${token}`.
-  - `Enviar por WhatsApp` – abre `https://wa.me/55{client.phone}?text=${encodeURIComponent(msg)}` contendo saudação + URL.
-- Armazenar `public_link_last_viewed_at` para identificar links nunca abertos e permitir expirar/regenerar manualmente.
-
-### 6. Exportação em PDF
-
-- Usar `@react-pdf/renderer` para criar `BudgetPdfDocument`, componente independente do preview HTML.
-  - Reaproveita os dados já carregados pelo preview.
-  - Insere logo (mesmo arquivo exibido na sidebar) e estilização com as cores do tema.
-  - Botão “Baixar PDF” chama `pdf(<BudgetPdfDocument ... />).toBlob()` e dispara download.
-- No público, o botão chama a mesma lógica; no painel interno podemos oferecer também “Imprimir” (usa `window.print()` no layout do preview).
-
-### 7. Observabilidade e testes
-
-- Adicionar telemetry leve em Supabase (`public_link_last_viewed_at`, `approved_at`).
-- No front, criar testes de Storybook/Playwright para:
-  - abrir o preview com dados mock (`QuotePreview.stories.tsx`).
-  - fluxo público: utilizar Playwright para navegar até `/orcamento/preview/:token` (mockando RPC) e clicar em “Aprovar”.
-  - regressões do formulário em modo edição (preencher, remover item, salvar).
-
-## Fluxos detalhados
-
-### Fluxo interno (admin/orçamentista)
-
-1. Usuário acessa `BudgetsPage`, abre um orçamento e clica em “Editar”.
-2. `BudgetForm` carrega dados via `fetchQuoteDetails`, popula o formulário e permite alterações de qualquer campo/status.
-3. Ao salvar, `updateQuoteWithItems` valida e atualiza `quotes`/`quote_items`, recalcula total e grava `updated_at`.
-4. Ao clicar em “Compartilhar”, se não houver token válido chamamos `regenerateQuotePublicLink`. Mostramos modal com URL, botão de cópia, botão “Enviar no WhatsApp” e opção de definir expiração.
-5. Botão “Preview” abre `QuotePreview` com os dados finais e permite baixar PDF ou iniciar o envio.
-
-### Fluxo do cliente (link público)
-
-1. Cliente recebe URL `https://app.deliciasdAdri.com/orcamento/preview/<token>`.
-2. PublicApp busca dados via `get_quote_public_preview`.
-3. Cliente visualiza o documento, pode baixar PDF ou enviar dúvidas via WhatsApp usando o telefone já inserido no orçamento.
-4. Se clicar em “Aprovar orçamento”, chamamos `approveQuoteViaToken`. Em caso de sucesso, mostramos confirmação, travamos novas aprovações e informamos que o time será notificado (internamente via toast + `updated_at`).
-
-## Impacto nos arquivos principais
-
-- `src/features/BudgetsPage.tsx`: novo botão de edição, drawer de preview, dropdown de compartilhamento.
-- `src/features/CreateBudgetPage.tsx`: extrair `BudgetForm` reutilizável com suporte a edição, precarga e atualização otimista.
-- `src/features/PublicQuotePreview.tsx` (novo): roteamento independente para link público, chama RPCs específicos.
-- `src/services/quotesService.ts`: adicionar funções de update, geração de token, RPC públicas e helpers para WhatsApp/PDF.
-- `src/main.tsx`: roteamento condicional para separar aplicação autenticada do fluxo público.
-- Componentes utilitários (`QuotePreview`, `ShareQuoteDialog`, `BudgetPdfDocument`) com Styled components/Tailwind.
-
-## Dependências sugeridas
-
-- `@react-pdf/renderer` para geração de PDF.
-- `uuid` (ou `crypto.randomUUID`) para tokens no front; token definitivo será salvo no banco via Supabase.
-- Nenhuma outra dependência obrigatória; aproveitamos libs já existentes (Radix Dialog, Sonner, RHF, etc.).
-
-## Métricas de sucesso
-
-- 100% dos orçamentos podem ser atualizados sem refazer o cadastro (zero recriações).
-- Tempo médio para envio/compartilhamento reduzido (botões dedicados).
-- Pelo menos 80% dos clientes aprovam via link público (monitorado por `approved_at`).
-- Não há acessos inválidos ao app principal a partir do link (verifica-se pelo fato de o público nunca carregar `AppLayout`).
+## Impacto esperado
+- **Desenvolvedores**: código mais modular (providers, components reutilizáveis, serviços para pedidos).  
+- **Operação**: filtros compactos, status clicável e automação de pedidos reduzem passos manuais.  
+- **Clientes**: layout mais estável (scroll/kanban) e tema dark melhoram a percepção de profissionalismo.  
+- **Governança**: logs e feedbacks claros ao bloquear exclusões e ao criar pedidos automaticamente.

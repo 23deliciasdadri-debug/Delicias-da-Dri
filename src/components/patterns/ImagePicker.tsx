@@ -161,7 +161,7 @@ export const ImagePicker: React.FC<ImagePickerProps> = ({
           'rounded-2xl border-2 border-dashed p-6 text-center transition-all',
           isDropDisabled
             ? 'border-border/70 bg-muted/40 cursor-not-allowed'
-            : 'cursor-pointer bg-white/70 hover:border-rose-300',
+            : 'cursor-pointer bg-card/70 hover:border-rose-300',
           isDraggingOverZone && !isDropDisabled ? 'border-rose-400 bg-rose-50/70' : '',
         )}
         role="button"
@@ -232,7 +232,7 @@ export const ImagePicker: React.FC<ImagePickerProps> = ({
             </div>
           </SortableContext>
           {activeItem ? (
-            <div className="pointer-events-none fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border/60 bg-white/95 p-4 shadow-xl">
+            <div className="pointer-events-none fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border/60 bg-card/95 p-4 shadow-xl">
               <ImagePreviewContent item={activeItem} />
             </div>
           ) : null}
@@ -283,7 +283,7 @@ const SortableImageCard: React.FC<SortableImageCardProps> = ({
       {...attributes}
       {...listeners}
       className={cn(
-        'group relative overflow-hidden rounded-2xl border border-border/60 bg-white shadow-sm transition-all',
+        'group relative overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm transition-all',
         isDragging ? 'ring-2 ring-rose-400' : 'hover:shadow-lg',
       )}
     >
@@ -306,7 +306,7 @@ const SortableImageCard: React.FC<SortableImageCardProps> = ({
               event.stopPropagation();
               onRemove();
             }}
-            className="rounded-full bg-white/20 p-1 text-white hover:bg-white/40"
+            className="rounded-full bg-card/60 p-1 text-foreground shadow hover:bg-card/80"
             aria-label="Remover imagem"
           >
             <X className="size-4" />
@@ -320,8 +320,8 @@ const SortableImageCard: React.FC<SortableImageCardProps> = ({
               onSetCover();
             }}
             className={cn(
-              'w-full rounded-xl border border-white/30 bg-white/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors hover:bg-white/30',
-              isCover ? 'border-white bg-white/40 text-slate-900' : '',
+              'w-full rounded-xl border border-card/40 bg-card/30 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors hover:bg-card/50',
+              isCover ? 'border-primary bg-primary/15 text-primary' : '',
             )}
           >
             {isCover ? 'Capa selecionada' : 'Usar como capa'}

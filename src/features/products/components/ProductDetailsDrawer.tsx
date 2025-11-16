@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Dialog,
@@ -67,12 +67,13 @@ const ProductDetailsDrawer: React.FC<ProductDetailsDrawerProps> = ({
   }, [media, product]);
 
   const [activeImageId, setActiveImageId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setActiveImageId(galleryItems[0]?.id ?? null);
-  }, [galleryItems, product?.id]);
-
-  const activeImage = galleryItems.find((item) => item.id === activeImageId) ?? galleryItems[0];
+  const resolvedActiveImageId = useMemo(() => {
+    if (activeImageId && galleryItems.some((item) => item.id === activeImageId)) {
+      return activeImageId;
+    }
+    return galleryItems[0]?.id ?? null;
+  }, [activeImageId, galleryItems]);
+  const activeImage = galleryItems.find((item) => item.id === resolvedActiveImageId) ?? galleryItems[0];
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
@@ -86,7 +87,7 @@ const ProductDetailsDrawer: React.FC<ProductDetailsDrawerProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-full max-w-full rounded-none border-0 bg-white p-0 sm:rounded-3xl sm:max-w-2xl md:max-w-4xl md:border shadow-2xl">
+      <DialogContent className="w-full max-w-full rounded-none border-0 bg-card p-0 sm:rounded-3xl sm:max-w-2xl md:max-w-4xl md:border shadow-2xl">
         <div className="grid max-h-[90vh] grid-rows-[auto,1fr] overflow-hidden">
           <DialogHeader className="border-b border-border/70 px-6 py-4">
             <DialogTitle>{product.name}</DialogTitle>
@@ -128,7 +129,7 @@ const ProductDetailsDrawer: React.FC<ProductDetailsDrawerProps> = ({
                         whileTap={{ scale: 0.97 }}
                         className={cn(
                           'h-16 w-16 shrink-0 overflow-hidden rounded-xl border transition-all',
-                          activeImageId === item.id
+                          resolvedActiveImageId === item.id
                             ? 'border-rose-500 ring-2 ring-rose-200'
                             : 'border-transparent opacity-70 hover:opacity-100',
                         )}

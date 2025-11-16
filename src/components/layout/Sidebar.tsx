@@ -26,12 +26,12 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 w-72 border-r border-border bg-gradient-to-b from-white to-rose-50/30 shadow-xl transition-transform duration-300 lg:static lg:shadow-none ${
+      className={`fixed inset-y-0 left-0 z-50 w-72 border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-xl transition-transform duration-300 lg:static lg:shadow-none ${
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}
       aria-label="Menu lateral"
     >
-      <div className="border-border/50 border-b p-6">
+      <div className="border-b border-sidebar-border/60 p-6">
         <div className="flex items-center gap-4">
           <div className="gradient-primary flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg shadow-rose-500/30">
             <Cake className="h-7 w-7 text-white" aria-hidden />
@@ -66,7 +66,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           );
         })}
       </nav>
-      <div className="absolute bottom-0 left-0 right-0 border-t border-border/50 bg-white/70 p-4 backdrop-blur-sm">
+      <div className="absolute bottom-0 left-0 right-0 border-t border-sidebar-border/60 bg-card/90 p-4 backdrop-blur-sm dark:bg-card/60">
         <Button
           variant="ghost"
           className="h-12 w-full justify-start text-muted-foreground hover:bg-rose-50 hover:text-rose-600"

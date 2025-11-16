@@ -1,35 +1,4 @@
--- Bucket para armazenar imagens enviadas diretamente do dispositivo.
-insert into storage.buckets (id, name, public)
-values ('product-media', 'product-media', true)
-on conflict (id) do nothing;
-
--- Permissões básicas: todos os usuários autenticados podem fazer upload/leitura dos próprios arquivos.
-create policy "Autenticado pode enviar imagens de produto"
-on storage.objects for insert
-with check (
-  bucket_id = 'product-media'
-  and auth.role() = 'authenticated'
-);
-
-create policy "Autenticado pode ler imagens de produto"
-on storage.objects for select
-using (
-  bucket_id = 'product-media'
-);
-
--- Tabela para controlar múltiplas imagens por produto.
-create table if not exists public.product_media (
-  id bigserial primary key,
-  product_id uuid not null references public.products(id) on delete cascade,
-  storage_path text not null,
-  sort_order integer not null default 0,
-  created_at timestamptz not null default now()
-);
-
-create unique index if not exists product_media_product_path_idx
-  on public.product_media (product_id, storage_path);
-
--- Campos extras para controle de compartilhamento de orçamentos.
+-- Executar esse bloco no SQL Editor do Supabase para habilitar links públicos de orçamentos.
 alter table public.quotes
   add column if not exists updated_at timestamptz not null default now(),
   add column if not exists approved_at timestamptz,
@@ -41,7 +10,6 @@ create unique index if not exists quotes_public_link_token_idx
   on public.quotes (public_link_token)
   where public_link_token is not null;
 
--- Função que retorna um preview público completo (um registro por item) e atualiza o last_viewed_at.
 create or replace function public.get_quote_public_preview(input_token uuid)
 returns table (
   quote_id uuid,
@@ -101,7 +69,6 @@ begin
 end;
 $$;
 
--- Função que aprova o orçamento via token público.
 create or replace function public.approve_quote_via_token(input_token uuid)
 returns public.quotes
 language plpgsql

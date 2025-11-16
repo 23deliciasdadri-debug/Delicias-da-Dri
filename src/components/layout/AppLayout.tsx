@@ -41,7 +41,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   const avatarUrl = profile?.avatar_url;
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-rose-50/30">
+    <div className="flex min-h-screen bg-gradient-to-br from-background via-background/95 to-muted/40 text-foreground transition-colors dark:from-background dark:via-slate-950 dark:to-slate-900">
       <Sidebar
         currentPage={currentPage}
         setCurrentPage={navigateToPage}

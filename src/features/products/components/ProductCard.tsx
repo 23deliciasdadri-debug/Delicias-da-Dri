@@ -57,6 +57,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
     onOpenDetails(product);
   };
+  const handleCardKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (disabled || !('key' in event)) {
+      return;
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleCardClick();
+    }
+  };
 
   return (
     <MotionCard
@@ -72,7 +81,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
       )}
     >
       <CardContent className="p-0">
-        <div className="relative h-56 cursor-pointer" onClick={handleCardClick}>
+        <div
+          className="relative h-56 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-200"
+          onClick={handleCardClick}
+          role="button"
+          tabIndex={disabled ? -1 : 0}
+          onKeyDown={handleCardKeyDown}
+          aria-label={`Ver detalhes de ${product.name}`}
+        >
           <img
             src={displayImage}
             alt={product.name}
@@ -81,11 +97,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
           <div className="absolute top-3 left-3 flex flex-col gap-2">
-            <Badge className="bg-white/90 text-foreground shadow">
+            <Badge className="bg-card/90 text-foreground shadow">
               {product.product_type === 'COMPONENTE_BOLO' ? 'Componente' : 'Menu'}
             </Badge>
             {product.component_category ? (
-              <Badge variant="secondary" className="bg-white/80 text-foreground">
+              <Badge variant="secondary" className="bg-card/80 text-foreground">
                 {product.component_category}
               </Badge>
             ) : null}
@@ -96,7 +112,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 size="icon-sm"
                 variant="secondary"
               className={cn(
-                'backdrop-blur bg-white/70 text-foreground',
+                'backdrop-blur bg-card/70 text-foreground',
                 product.is_public ? 'text-emerald-600' : 'text-rose-600',
               )}
                 onClick={(event) => {
@@ -112,7 +128,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   <Button
                     size="icon-sm"
                     variant="secondary"
-                    className="bg-white/80 text-foreground hover:bg-white"
+                    className="bg-card/80 text-foreground hover:bg-card"
                     onClick={(event) => event.stopPropagation()}
                     aria-label="Ações rápidas do produto"
                   >

@@ -20,7 +20,7 @@ export const FormSection: React.FC<FormSectionProps> = ({
 }) => (
   <section
     className={cn(
-      'rounded-2xl border border-border/70 bg-white/95 p-5 shadow-sm backdrop-blur',
+      'rounded-2xl border border-border/70 bg-card/95 p-5 shadow-sm backdrop-blur transition-colors dark:bg-card/65',
       className,
     )}
   >

@@ -41,7 +41,7 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent
       className={cn(
-        'sm:max-w-lg bg-white',
+        'sm:max-w-lg bg-card',
         'max-h-[90vh] overflow-y-auto rounded-3xl sm:rounded-2xl',
         className,
       )}

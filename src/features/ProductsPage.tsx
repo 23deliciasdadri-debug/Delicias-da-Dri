@@ -911,7 +911,7 @@ const ProductsPage: React.FC = () => {
       )}
 
       <Dialog open={isModalOpen} onOpenChange={handleModalChange}>
-        <DialogContent className="max-w-2xl overflow-hidden bg-white p-0">
+        <DialogContent className="max-w-2xl overflow-hidden bg-card p-0">
           <FormProvider {...productForm}>
             <form className="flex max-h-[90vh] flex-col" onSubmit={handleSubmitProduct} noValidate>
               <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
@@ -1107,7 +1107,7 @@ const ProductsPage: React.FC = () => {
                 ) : null}
               </div>
 
-              <DialogFooter className="sticky bottom-0 flex gap-2 border-t border-border/60 bg-white px-6 py-4">
+              <DialogFooter className="sticky bottom-0 flex gap-2 border-t border-border/60 bg-card px-6 py-4">
                 <Button type="button" variant="outline" onClick={() => handleModalChange(false)}>
                   Cancelar
                 </Button>

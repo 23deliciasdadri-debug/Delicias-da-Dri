@@ -24,14 +24,16 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   <div
     className={cn(
       'text-center',
-      compact ? 'space-y-2 rounded-xl border border-dashed border-rose-200 p-6' : 'space-y-4 rounded-2xl border-2 border-dashed border-rose-200 p-10',
-      'bg-gradient-to-br from-rose-50/80 to-orange-50/60',
+      compact
+        ? 'space-y-2 rounded-xl border border-dashed border-rose-200/80 p-6'
+        : 'space-y-4 rounded-2xl border-2 border-dashed border-rose-200/80 p-10',
+      'bg-card/95 text-foreground shadow-sm dark:bg-card/60',
       className,
     )}
     {...props}
   >
     {icon ? (
-      <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-white/80 text-rose-500 shadow">
+      <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-card/80 text-rose-500 shadow">
         {icon}
       </div>
     ) : null}

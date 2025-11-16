@@ -41,6 +41,11 @@ export interface Quote {
   total_amount: number;
   notes?: string | null;
   created_at?: string;
+  updated_at?: string;
+  approved_at?: string | null;
+  public_link_token?: string | null;
+  public_link_token_expires_at?: string | null;
+  public_link_last_viewed_at?: string | null;
 }
 
 export interface QuoteItem {

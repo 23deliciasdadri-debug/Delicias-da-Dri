@@ -4,10 +4,44 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Delicias da Dri v2</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#fff7f5" />
+    <link
+      id="app-favicon"
+      rel="icon"
+      type="image/svg+xml"
+      href="/favicon.svg"
+      data-light-icon="/favicon.svg"
+      data-dark-icon="/favicon-dark.svg"
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <script>
+    (() => {
+      const storageKey = 'delicias-da-dri.theme';
+      const root = document.documentElement;
+      try {
+        const storedTheme = window.localStorage.getItem(storageKey);
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : prefersDark ? 'dark' : 'light';
+        root.classList.add(theme);
+        root.style.colorScheme = theme;
+        const favicon = document.getElementById('app-favicon');
+        if (favicon) {
+          const target =
+            theme === 'dark'
+              ? favicon.getAttribute('data-dark-icon') ?? favicon.getAttribute('href')
+              : favicon.getAttribute('data-light-icon') ?? favicon.getAttribute('href');
+          if (target) {
+            favicon.setAttribute('href', target);
+          }
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.warn('Não foi possível aplicar o tema inicial', error);
+      }
+    })();
+  </script>
   <script type="importmap">
 {
   "imports": {

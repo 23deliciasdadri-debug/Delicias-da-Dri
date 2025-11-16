@@ -420,7 +420,7 @@ const ClientsPage: React.FC = () => {
         />
       ) : null}
       <Dialog open={isModalOpen} onOpenChange={handleModalChange}>
-        <DialogContent className="max-w-lg bg-white">
+        <DialogContent className="max-w-lg bg-card">
           <FormProvider {...clientForm}>
             <form className="space-y-5" onSubmit={handleSubmitClient}>
               <DialogHeader>

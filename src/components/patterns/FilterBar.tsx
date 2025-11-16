@@ -29,7 +29,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 }) => (
   <section
     className={cn(
-      'rounded-2xl border border-border/60 bg-white/90 p-4 shadow-sm backdrop-blur',
+      'rounded-2xl border border-border/60 bg-card/90 p-4 shadow-sm backdrop-blur transition-colors dark:bg-card/60',
       className,
     )}
   >

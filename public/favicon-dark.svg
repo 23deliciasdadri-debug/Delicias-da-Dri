@@ -1,0 +1,49 @@
+﻿<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg-dark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1d1524" />
+      <stop offset="100%" stop-color="#3b1f2c" />
+    </linearGradient>
+    <linearGradient id="cake-dark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f59f9f" />
+      <stop offset="100%" stop-color="#fb6f92" />
+    </linearGradient>
+    <linearGradient id="icing-dark" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#2e1b2f" />
+      <stop offset="100%" stop-color="#3d223a" />
+    </linearGradient>
+    <linearGradient id="flame-dark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffd585" />
+      <stop offset="100%" stop-color="#ff5c5c" />
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="34" fill="url(#bg-dark)" />
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path
+      d="M64 30c-2.6 0-6.5-3.3-6.5-7.3 0-4.7 3.9-8.7 6.5-12.7 2.6 4 6.5 8 6.5 12.7 0 4-3.9 7.3-6.5 7.3z"
+      fill="url(#flame-dark)"
+    />
+    <rect x="60" y="36" width="8" height="20" rx="4" fill="#ff8da1" />
+  </g>
+  <g>
+    <rect x="26" y="50" width="76" height="50" rx="20" fill="url(#cake-dark)" stroke="#fb9cc3" stroke-width="4" />
+    <path
+      d="M30 60c6 6 12 6 18 0s12-6 18 0 12 6 18 0 12-6 18 0v24a12 12 0 0 1-12 12H42A12 12 0 0 1 30 84V60z"
+      fill="url(#icing-dark)"
+      stroke="#613050"
+      stroke-width="3"
+    />
+    <path
+      d="M38 82c6.5 5 11.5 5 18 0s11.5-5 18 0 11.5 5 18 0"
+      fill="none"
+      stroke="#ff8db7"
+      stroke-width="4"
+      stroke-linecap="round"
+    />
+  </g>
+  <g fill="#ffd6e0">
+    <circle cx="46" cy="64" r="3" />
+    <circle cx="66" cy="70" r="3" />
+    <circle cx="86" cy="64" r="3" />
+  </g>
+</svg>
