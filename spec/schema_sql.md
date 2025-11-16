@@ -1,355 +1,138 @@
-# Playbook de Policies e RLS — Supabase
+-- Bucket para armazenar imagens enviadas diretamente do dispositivo.
+insert into storage.buckets (id, name, public)
+values ('product-media', 'product-media', true)
+on conflict (id) do nothing;
 
-## Objetivo
-Garantir que todas as tabelas expostas ao frontend respeitem Row Level Security (RLS) com regras claras por papel (`admin`, `kitchen`, `delivery`). Este documento serve como manual operacional e script oficial para aplicar/reativar as policies no Supabase.
+-- Permissões básicas: todos os usuários autenticados podem fazer upload/leitura dos próprios arquivos.
+create policy "Autenticado pode enviar imagens de produto"
+on storage.objects for insert
+with check (
+  bucket_id = 'product-media'
+  and auth.role() = 'authenticated'
+);
 
-## Quem executa
-- Membro com acesso ao projeto no Supabase Console e permissão para usar o `service_role` (ou rodar o script via CLI com a mesma role).
-- Antes de executar, faça backup/export das policies atuais (SQL Editor > “Download query result”).
+create policy "Autenticado pode ler imagens de produto"
+on storage.objects for select
+using (
+  bucket_id = 'product-media'
+);
 
-## Passo a passo básico
-1. Abrir o **SQL Editor** do Supabase e selecionar o banco `postgres`.
-2. Copiar os blocos abaixo por seção (ou o arquivo inteiro) e executar.
-3. Após cada execução, rodar:
-   ```sql
-   select tablename, is_rls_enabled, is_rls_forced
-   from pg_tables
-   where schemaname = 'public'
-     and tablename in ('profiles','clients','products','quotes','quote_items','orders');
-   ```
-4. Validar policies com:
-   ```sql
-   select schemaname, tablename, policyname, permissive, roles, cmd
-   from pg_policies
-   where schemaname = 'public'
-   order by tablename, policyname;
-   ```
-5. Testar rapidamente via SQL (por exemplo, usando `auth.uid()` simulado com `set local role authenticated;` em sessões seguras) ou via aplicação/harness.
+-- Tabela para controlar múltiplas imagens por produto.
+create table if not exists public.product_media (
+  id bigserial primary key,
+  product_id uuid not null references public.products(id) on delete cascade,
+  storage_path text not null,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
 
-## Checklist de validação
-- Todas as tabelas listadas retornam `is_rls_enabled = true` e `is_rls_forced = true`.
-- Usuário `admin` consegue CRUD completo em `clients`, `products`, `quotes`, `quote_items`, `orders`.
-- Usuário `kitchen` consegue ler `clients/products/quotes/orders` e atualizar pedidos apenas nos status permitidos.
-- Usuário `delivery` consegue ler `clients/products/quotes/orders` e atualizar pedidos apenas em fase de entrega.
-- Usuário autenticado comum só consegue ler/alterar seu próprio registro em `profiles`.
+create unique index if not exists product_media_product_path_idx
+  on public.product_media (product_id, storage_path);
 
-## Matriz de acesso por papel
+-- Campos extras para controle de compartilhamento de orçamentos.
+alter table public.quotes
+  add column if not exists updated_at timestamptz not null default now(),
+  add column if not exists approved_at timestamptz,
+  add column if not exists public_link_token uuid,
+  add column if not exists public_link_token_expires_at timestamptz,
+  add column if not exists public_link_last_viewed_at timestamptz;
 
-| Tabela        | Admin                          | Kitchen                        | Delivery                       | Observações principais                                     |
-|---------------|--------------------------------|--------------------------------|--------------------------------|------------------------------------------------------------|
-| `profiles`    | Pode ler/atualizar todos via `service_role` (bypass). | Apenas o próprio registro.     | Apenas o próprio registro.     | RLS evita leitura cruzada de perfis.                       |
-| `clients`     | CRUD completo.                 | Leitura somente.               | Leitura somente.               | Protege dados sensíveis de clientes.                       |
-| `products`    | CRUD completo.                 | Leitura somente.               | Leitura somente.               | Catálogo controlado apenas por admin.                      |
-| `quotes`      | CRUD completo.                 | Leitura.                       | Leitura.                       | Apenas admin cria/edita/or exclui orçamentos.              |
-| `quote_items` | CRUD completo.                 | Leitura.                       | Leitura.                       | Items seguem mesma regra de `quotes`.                      |
-| `orders`      | CRUD completo.                 | Leitura e atualização limitada (`Aprovado` ⇄ `Pronto para Entrega`). | Leitura e atualização limitada (`Pronto para Entrega` ⇄ `Entregue`). | Delivery não pode mexer em itens de cozinha e vice-versa. |
+create unique index if not exists quotes_public_link_token_idx
+  on public.quotes (public_link_token)
+  where public_link_token is not null;
 
----
+-- Função que retorna um preview público completo (um registro por item) e atualiza o last_viewed_at.
+create or replace function public.get_quote_public_preview(input_token uuid)
+returns table (
+  quote_id uuid,
+  quote_status text,
+  quote_event_type text,
+  quote_event_date date,
+  quote_notes text,
+  quote_total_amount numeric,
+  quote_created_at timestamptz,
+  quote_updated_at timestamptz,
+  quote_approved_at timestamptz,
+  client_id uuid,
+  client_name text,
+  client_phone text,
+  client_email text,
+  item_id bigint,
+  item_product_id uuid,
+  item_product_name text,
+  item_quantity integer,
+  item_price numeric
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.quotes
+     set public_link_last_viewed_at = now()
+   where public_link_token = input_token
+     and (public_link_token_expires_at is null or public_link_token_expires_at > now());
 
-## SQL por tabela
+  return query
+  select
+    q.id,
+    q.status,
+    q.event_type,
+    q.event_date,
+    q.notes,
+    q.total_amount,
+    q.created_at,
+    q.updated_at,
+    q.approved_at,
+    c.id,
+    c.name,
+    c.phone,
+    c.email,
+    qi.id,
+    qi.product_id,
+    qi.product_name_copy,
+    qi.quantity,
+    qi.price_at_creation
+  from public.quotes q
+  join public.clients c on c.id = q.client_id
+  left join public.quote_items qi on qi.quote_id = q.id
+  where q.public_link_token = input_token
+    and (q.public_link_token_expires_at is null or q.public_link_token_expires_at > now());
+end;
+$$;
 
-> **Observação:** os blocos abaixo são idempotentes (`drop policy if exists ...`). Execute todos para manter consistência.
-
-### Perfis (`public.profiles`)
-
-```sql
-alter table public.profiles enable row level security;
-alter table public.profiles force row level security;
-
-drop policy if exists "profiles_select_self" on public.profiles;
-create policy "profiles_select_self" on public.profiles
-  for select
-  using (id = auth.uid());
-
-drop policy if exists "profiles_update_self" on public.profiles;
-create policy "profiles_update_self" on public.profiles
-  for update
-  using (id = auth.uid())
-  with check (id = auth.uid());
-```
-
-### Clientes (`public.clients`)
-
-```sql
-alter table public.clients enable row level security;
-alter table public.clients force row level security;
-
-drop policy if exists "clients_select_roles" on public.clients;
-create policy "clients_select_roles" on public.clients
-  for select
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role in ('admin','kitchen','delivery')
-    )
-  );
-
-drop policy if exists "clients_mutation_admin" on public.clients;
-create policy "clients_mutation_admin" on public.clients
-  for all
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role = 'admin'
-    )
-  )
-  with check (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role = 'admin'
-    )
-  );
-```
-
-### Produtos (`public.products`)
-
-```sql
-alter table public.products enable row level security;
-alter table public.products force row level security;
-
-drop policy if exists "products_select_roles" on public.products;
-create policy "products_select_roles" on public.products
-  for select
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role in ('admin','kitchen','delivery')
-    )
-  );
-
-drop policy if exists "products_mutation_admin" on public.products;
-create policy "products_mutation_admin" on public.products
-  for all
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role = 'admin'
-    )
-  )
-  with check (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role = 'admin'
-    )
-  );
-```
-
-### Orçamentos (`public.quotes`)
-
-```sql
-alter table public.quotes enable row level security;
-alter table public.quotes force row level security;
-
-drop policy if exists "quotes_select_roles" on public.quotes;
-create policy "quotes_select_roles" on public.quotes
-  for select
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role in ('admin','kitchen','delivery')
-    )
-  );
-
-drop policy if exists "quotes_mutation_admin" on public.quotes;
-create policy "quotes_mutation_admin" on public.quotes
-  for all
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role = 'admin'
-    )
-  )
-  with check (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role = 'admin'
-    )
-  );
-```
-
-### Itens de orçamento (`public.quote_items`)
-
-```sql
-alter table public.quote_items enable row level security;
-alter table public.quote_items force row level security;
-
-drop policy if exists "quote_items_select_roles" on public.quote_items;
-create policy "quote_items_select_roles" on public.quote_items
-  for select
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role in ('admin','kitchen','delivery')
-    )
-  );
-
-drop policy if exists "quote_items_mutation_admin" on public.quote_items;
-create policy "quote_items_mutation_admin" on public.quote_items
-  for all
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role = 'admin'
-    )
-  )
-  with check (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role = 'admin'
-    )
-  );
-```
-
-### Pedidos (`public.orders`)
-
-```sql
-alter table public.orders enable row level security;
-alter table public.orders force row level security;
-
--- SELECT
-drop policy if exists "orders_select_admin" on public.orders;
-create policy "orders_select_admin" on public.orders
-  for select
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role = 'admin'
-    )
-  );
-
-drop policy if exists "orders_select_kitchen" on public.orders;
-create policy "orders_select_kitchen" on public.orders
-  for select
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role = 'kitchen'
-    )
-    and status in ('Aprovado','Em Produção','Pronto para Entrega')
-  );
-
-drop policy if exists "orders_select_delivery" on public.orders;
-create policy "orders_select_delivery" on public.orders
-  for select
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role = 'delivery'
-    )
-    and status in ('Pronto para Entrega','Em Entrega','Entregue')
-  );
-
--- INSERT
-drop policy if exists "orders_insert_admin" on public.orders;
-create policy "orders_insert_admin" on public.orders
-  for insert
-  with check (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role = 'admin'
-    )
-  );
-
--- UPDATE
-drop policy if exists "orders_update_admin" on public.orders;
-create policy "orders_update_admin" on public.orders
-  for update
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role = 'admin'
-    )
-  )
-  with check (true);
-
-drop policy if exists "orders_update_kitchen" on public.orders;
-create policy "orders_update_kitchen" on public.orders
-  for update
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role = 'kitchen'
-    )
-    and status in ('Aprovado','Em Produção')
-  )
-  with check (
-    status in ('Em Produção','Pronto para Entrega')
-  );
-
-drop policy if exists "orders_update_delivery" on public.orders;
-create policy "orders_update_delivery" on public.orders
-  for update
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role = 'delivery'
-    )
-    and status in ('Pronto para Entrega','Em Entrega')
-  )
-  with check (
-    status in ('Em Entrega','Entregue')
-  );
-
--- DELETE
-drop policy if exists "orders_delete_admin" on public.orders;
-create policy "orders_delete_admin" on public.orders
-  for delete
-  using (
-    exists (
-      select 1
-      from public.profiles p
-      where p.id = auth.uid()
-        and p.role = 'admin'
-    )
-  );
-```
-
----
-
-## Referências rápidas
-- [Documentação Supabase RLS](https://supabase.com/docs/guides/auth/row-level-security)
-- Comando para verificar policies específicas:
-  ```sql
+-- Função que aprova o orçamento via token público.
+create or replace function public.approve_quote_via_token(input_token uuid)
+returns public.quotes
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  target public.quotes%rowtype;
+begin
   select *
-  from pg_policies
-  where schemaname = 'public' and tablename = '<tabela>';
-  ```
-- Para resetar políticas de uma tabela, basta executar novamente o bloco correspondente (os `drop policy` garantem idempotência).
+    into target
+    from public.quotes
+   where public_link_token = input_token
+     and (public_link_token_expires_at is null or public_link_token_expires_at > now())
+   for update;
+
+  if not found then
+    raise exception 'Token inválido ou expirado';
+  end if;
+
+  update public.quotes
+     set status = 'Aprovado',
+         approved_at = coalesce(target.approved_at, now()),
+         updated_at = now(),
+         public_link_last_viewed_at = now()
+   where id = target.id
+   returning * into target;
+
+  return target;
+end;
+$$;
+
+grant execute on function public.get_quote_public_preview(uuid) to anon, authenticated;
+grant execute on function public.approve_quote_via_token(uuid) to anon, authenticated;

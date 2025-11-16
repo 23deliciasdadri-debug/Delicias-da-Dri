@@ -155,9 +155,18 @@ export async function createQuoteWithItems(quote: QuoteInsertInput, items: Quote
     price_at_creation: item.price_at_creation,
   }));
 
-  const { error: itemsError } = await supabase.from('quote_items').insert(itemsPayload);
-  if (itemsError) {
-    throw new Error(itemsError.message);
+  try {
+    const { error: itemsError } = await supabase.from('quote_items').insert(itemsPayload);
+    if (itemsError) {
+      throw new Error(itemsError.message);
+    }
+  } catch (itemsError) {
+    try {
+      await supabase.from('quotes').delete().eq('id', quoteId);
+    } catch (cleanupError) {
+      console.error('Falha ao remover orçamento órfão após erro nos itens:', cleanupError);
+    }
+    throw itemsError instanceof Error ? itemsError : new Error('Erro ao salvar itens do orçamento.');
   }
 
   return (data as unknown) as Quote;

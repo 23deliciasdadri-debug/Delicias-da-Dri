@@ -1,4 +1,8 @@
-import React, { useCallback, useMemo, useState } from 'react';
+﻿import React, { useCallback, useMemo } from 'react';
+import { FormProvider, useFieldArray, useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { FormField, FormSection } from '../components/patterns';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -8,6 +12,7 @@ import { Page } from '../components/layout/Sidebar';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { useSupabaseMutation } from '../hooks/useSupabaseMutation';
 import { useToast } from '../hooks/use-toast';
+import { useAuth } from '../providers/AuthProvider';
 import { listClients } from '../services/clientsService';
 import { listProducts } from '../services/productsService';
 import {
@@ -21,27 +26,40 @@ interface CreateBudgetPageProps {
   setCurrentPage: (page: Page) => void;
 }
 
-interface DraftItem {
-  id: string;
-  productId?: string | null;
-  productName: string;
-  quantity: number;
-  unitPrice: number;
-}
+const budgetItemSchema = z.object({
+  id: z.string(),
+  productId: z.string().optional().nullable(),
+  productName: z.string().min(1, 'Informe o nome do item.'),
+  quantity: z.number().min(1, 'Quantidade mínima: 1'),
+  unitPrice: z.number().min(0.01, 'Valor deve ser maior que zero.'),
+});
 
-const generateItemId = () => Math.random().toString(36).slice(2, 10);
+const budgetFormSchema = z.object({
+  client_id: z.string().min(1, 'Selecione um cliente.'),
+  event_type: z.string().optional(),
+  event_date: z.string().optional(),
+  notes: z.string().optional(),
+  items: z.array(budgetItemSchema).min(1, 'Adicione pelo menos um item.'),
+});
+
+type BudgetFormValues = z.infer<typeof budgetFormSchema>;
+
+const createEmptyItem = (): BudgetFormValues['items'][number] => ({
+  id: Math.random().toString(36).slice(2, 10),
+  productId: '',
+  productName: '',
+  quantity: 1,
+  unitPrice: 0,
+});
 
 const CreateBudgetPage: React.FC<CreateBudgetPageProps> = ({ setCurrentPage }) => {
   const { toast } = useToast();
-
-  const [selectedClientId, setSelectedClientId] = useState('');
-  const [eventType, setEventType] = useState('');
-  const [eventDate, setEventDate] = useState('');
-  const [notes, setNotes] = useState('');
-  const [items, setItems] = useState<DraftItem[]>([]);
-  const [formError, setFormError] = useState<string | null>(null);
+  const { profile, isLoading: isAuthLoading } = useAuth();
+  const isAdmin = profile?.role === 'admin';
 
   const fetchClients = useCallback(() => listClients({ pageSize: 1000 }), []);
+  const queriesEnabled = isAdmin && !isAuthLoading;
+
   const {
     data: clientsData,
     isLoading: isLoadingClients,
@@ -49,6 +67,7 @@ const CreateBudgetPage: React.FC<CreateBudgetPageProps> = ({ setCurrentPage }) =
   } = useSupabaseQuery(fetchClients, {
     deps: [fetchClients],
     initialData: { items: [], total: 0 },
+    enabled: queriesEnabled,
   });
 
   const fetchProducts = useCallback(() => listProducts({ pageSize: 500 }), []);
@@ -59,6 +78,7 @@ const CreateBudgetPage: React.FC<CreateBudgetPageProps> = ({ setCurrentPage }) =
   } = useSupabaseQuery(fetchProducts, {
     deps: [fetchProducts],
     initialData: { items: [], total: 0 },
+    enabled: queriesEnabled,
   });
 
   const createQuoteMutation = useSupabaseMutation(
@@ -66,87 +86,74 @@ const CreateBudgetPage: React.FC<CreateBudgetPageProps> = ({ setCurrentPage }) =
       createQuoteWithItems(quote, quoteItems),
   );
 
+  const budgetForm = useForm<BudgetFormValues>({
+    resolver: zodResolver(budgetFormSchema),
+    defaultValues: {
+      client_id: '',
+      event_type: '',
+      event_date: '',
+      notes: '',
+      items: [],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: budgetForm.control,
+    name: 'items',
+  });
+
+  const watchedItems = budgetForm.watch('items');
+  const watchedClientId = budgetForm.watch('client_id');
+
   const allClients = clientsData?.items ?? [];
   const allProducts = productsData?.items ?? [];
-
-  const handleAddItem = () => {
-    setItems((prev) => [
-      ...prev,
-      {
-        id: generateItemId(),
-        productId: undefined,
-        productName: '',
-        quantity: 1,
-        unitPrice: 0,
-      },
-    ]);
-  };
-
-  const handleRemoveItem = (id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const handleProductSelect = (itemId: string, productId: string) => {
-    const product = allProducts.find((p) => p.id === productId);
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === itemId
-          ? {
-              ...item,
-              productId,
-              productName: product?.name ?? item.productName,
-              unitPrice: product?.price ?? item.unitPrice,
-            }
-          : item,
-      ),
-    );
-  };
-
-  const handleItemChange = (itemId: string, changes: Partial<DraftItem>) => {
-    setItems((prev) =>
-      prev.map((item) => (item.id === itemId ? { ...item, ...changes } : item)),
-    );
-  };
-
-  const totalAmount = useMemo(
-    () => items.reduce((acc, item) => acc + item.quantity * item.unitPrice, 0),
-    [items],
-  );
-
   const isLoadingOptions = isLoadingClients || isLoadingProducts;
 
-  const handleCreateQuote = async () => {
-    if (!selectedClientId) {
-      setFormError('Selecione um cliente antes de salvar.');
-      return;
-    }
-    if (!items.length) {
-      setFormError('Adicione pelo menos um item ao orçamento.');
-      return;
-    }
-    for (const item of items) {
-      if (!item.productName.trim()) {
-        setFormError('Informe o nome de todos os itens.');
-        return;
-      }
-      if (item.quantity <= 0 || item.unitPrice <= 0) {
-        setFormError('Quantidade e valor precisam ser maiores do que zero.');
-        return;
-      }
-    }
+  const totalAmount = useMemo(
+    () =>
+      watchedItems.reduce(
+        (acc, item) => acc + Number(item.quantity || 0) * Number(item.unitPrice || 0),
+        0,
+      ),
+    [watchedItems],
+  );
 
-    setFormError(null);
+  const handleAddItem = () => append(createEmptyItem());
+
+  const handleRemoveItem = (fieldId: string) => {
+    const index = fields.findIndex((field) => field.id === fieldId);
+    if (index >= 0) {
+      remove(index);
+    }
+  };
+
+  const handleProductSelect = (fieldId: string, productId: string) => {
+    const index = fields.findIndex((field) => field.id === fieldId);
+    if (index < 0) {
+      return;
+    }
+    budgetForm.setValue(`items.${index}.productId`, productId || '', { shouldDirty: true });
+    const product = allProducts.find((candidate) => candidate.id === productId);
+    if (product?.name) {
+      budgetForm.setValue(`items.${index}.productName`, product.name, { shouldDirty: true });
+    }
+    if (typeof product?.price === 'number') {
+      budgetForm.setValue(`items.${index}.unitPrice`, product.price, { shouldDirty: true });
+    }
+  };
+
+  const handleSubmitBudget = budgetForm.handleSubmit(async (values) => {
     const quotePayload: QuoteInsertInput = {
-      client_id: selectedClientId,
+      client_id: values.client_id,
       status: 'Pendente',
-      event_type: eventType.trim() || null,
-      event_date: eventDate || null,
+      event_type: values.event_type?.trim() || null,
+      event_date: values.event_date || null,
       total_amount: Number(totalAmount.toFixed(2)),
-      notes: notes.trim() || null,
+      notes: values.notes?.trim() || null,
     };
 
-    const quoteItemsPayload: QuoteItemDraft[] = items.map((item) => ({
-      product_id: item.productId ?? null,
+    const quoteItemsPayload: QuoteItemDraft[] = values.items.map((item) => ({
+      product_id: item.productId || null,
       product_name_copy: item.productName.trim(),
       quantity: item.quantity,
       price_at_creation: item.unitPrice,
@@ -165,22 +172,42 @@ const CreateBudgetPage: React.FC<CreateBudgetPageProps> = ({ setCurrentPage }) =
       title: 'Orçamento criado',
       description: 'O orçamento foi salvo e já aparece na listagem.',
     });
+    budgetForm.reset({ client_id: '', event_type: '', event_date: '', notes: '', items: [] });
     setCurrentPage('budgets');
-  };
+  });
 
-  return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="space-y-1">
-          <p className="text-sm uppercase tracking-widest text-muted-foreground">Novo fluxo</p>
-          <h1 className="text-4xl font-serif font-bold bg-gradient-to-r from-rose-600 to-orange-500 bg-clip-text text-transparent">
-            Criar Orçamento
-          </h1>
-          <p className="text-muted-foreground">
-            Preencha os dados do evento, selecione itens do catálogo e gere uma proposta formal.
-          </p>
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3 text-muted-foreground">
+        <Loader2 className="size-6 animate-spin text-rose-500" />
+        <p>Carregando permissões...</p>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="space-y-1">
+            <p className="text-sm uppercase tracking-widest text-muted-foreground">Novo fluxo</p>
+            <h1 className="text-4xl font-serif font-bold bg-gradient-to-r from-rose-600 to-orange-500 bg-clip-text text-transparent">
+              Criar Orçamento
+            </h1>
+            <p className="text-muted-foreground">
+              Apenas administradores podem gerar orçamentos para evitar alterações indevidas.
+            </p>
+          </div>
         </div>
+        <Alert variant="destructive">
+          <AlertTitle>Acesso restrito</AlertTitle>
+          <AlertDescription>
+            Sua conta atual não possui permissão para criar orçamentos. Solicite acesso ou volte para a
+            listagem de orçamentos.
+          </AlertDescription>
+        </Alert>
         <Button
+          type="button"
           variant="outline"
           onClick={() => setCurrentPage('budgets')}
           className="h-11 px-6 border-2 hover:border-rose-500 hover:text-rose-600"
@@ -188,258 +215,275 @@ const CreateBudgetPage: React.FC<CreateBudgetPageProps> = ({ setCurrentPage }) =
           Voltar
         </Button>
       </div>
+    );
+  }
 
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="border-0 shadow-md">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-xl font-semibold">Cliente</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+  return (
+    <FormProvider {...budgetForm}>
+      <form className="space-y-8" onSubmit={handleSubmitBudget}>
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="space-y-1">
+            <p className="text-sm uppercase tracking-widest text-muted-foreground">Novo fluxo</p>
+            <h1 className="text-4xl font-serif font-bold bg-gradient-to-r from-rose-600 to-orange-500 bg-clip-text text-transparent">
+              Criar Orçamento
+            </h1>
+            <p className="text-muted-foreground">
+              Preencha os dados do evento, selecione itens do catálogo e gere uma proposta formal.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setCurrentPage('budgets')}
+            className="h-11 px-6 border-2 hover:border-rose-500 hover:text-rose-600"
+          >
+            Voltar
+          </Button>
+        </div>
+
+        <div className="grid gap-8 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            <FormSection title="Cliente" description="Selecione quem receberá o orçamento.">
               {clientsError ? (
                 <Alert variant="destructive">
                   <AlertTitle>Erro ao carregar clientes</AlertTitle>
                   <AlertDescription>{clientsError}</AlertDescription>
                 </Alert>
               ) : (
-                <div className="space-y-2">
-                  <Label htmlFor="budget-client">Selecione o cliente</Label>
-                  <select
-                    id="budget-client"
-                    disabled={isLoadingClients}
-                    value={selectedClientId}
-                    onChange={(event) => setSelectedClientId(event.target.value)}
-                    className="h-11 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-rose-500 focus-visible:ring-2 focus-visible:ring-rose-500/30 disabled:opacity-60"
-                  >
-                    <option value="">Selecione...</option>
-                    {allClients.map((client) => (
-                      <option key={client.id} value={client.id}>
-                        {client.name} — {client.phone}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <FormField
+                  name="client_id"
+                  label="Selecione o cliente"
+                  required
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      disabled={isLoadingClients}
+                      className="h-11 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-rose-500 focus-visible:ring-2 focus-visible:ring-rose-500/30 disabled:opacity-60"
+                    >
+                      <option value="">Selecione...</option>
+                      {allClients.map((client) => (
+                        <option key={client.id} value={client.id}>
+                          {client.name} · {client.phone}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                />
               )}
-            </CardContent>
-          </Card>
+            </FormSection>
 
-          <Card className="border-0 shadow-md">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-xl font-semibold">Evento</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="event-type">Tipo de evento</Label>
-                <Input
-                  id="event-type"
-                  placeholder="Ex.: Aniversário, Casamento"
-                  value={eventType}
-                  onChange={(event) => setEventType(event.target.value)}
+            <FormSection title="Evento" description="Contexto e observações.">
+              <div className="grid gap-4 md:grid-cols-2">
+                <FormField
+                  name="event_type"
+                  label="Tipo de evento"
+                  render={({ field }) => (
+                    <Input {...field} placeholder="Ex.: Aniversário, Casamento" />
+                  )}
+                />
+                <FormField
+                  name="event_date"
+                  label="Data do evento"
+                  render={({ field }) => <Input {...field} type="date" />}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="event-date">Data do evento</Label>
-                <Input
-                  id="event-date"
-                  type="date"
-                  value={eventDate}
-                  onChange={(event) => setEventDate(event.target.value)}
-                />
-              </div>
-              <div className="md:col-span-2 space-y-2">
-                <Label htmlFor="event-notes">Observações</Label>
-                <textarea
-                  id="event-notes"
-                  placeholder="Detalhes de entrega, referências, restrições..."
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  rows={4}
-                  className="min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-rose-500 focus-visible:ring-2 focus-visible:ring-rose-500/30"
-                />
-              </div>
-            </CardContent>
-          </Card>
+              <FormField
+                name="notes"
+                label="Observações"
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    rows={4}
+                    placeholder="Detalhes de entrega, referências, restrições..."
+                    className="min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-rose-500 focus-visible:ring-2 focus-visible:ring-rose-500/30"
+                  />
+                )}
+              />
+            </FormSection>
 
-          <Card className="border-0 shadow-md">
-            <CardHeader className="pb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-              <CardTitle className="text-xl font-semibold">Itens do orçamento</CardTitle>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-9 border-dashed"
-                onClick={handleAddItem}
-                disabled={isLoadingOptions}
-              >
-                <Plus className="mr-2 size-4" />
-                Adicionar item
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            <FormSection
+              title="Itens do orçamento"
+              description="Monte a proposta usando itens do catálogo ou personalizados."
+              actions={
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 border-dashed"
+                  onClick={handleAddItem}
+                  disabled={isLoadingOptions}
+                >
+                  <Plus className="mr-2 size-4" />
+                  Adicionar item
+                </Button>
+              }
+            >
               {productsError ? (
                 <Alert variant="destructive">
                   <AlertTitle>Erro ao carregar produtos</AlertTitle>
                   <AlertDescription>{productsError}</AlertDescription>
                 </Alert>
               ) : null}
-              {!items.length ? (
+
+              {!fields.length ? (
                 <div className="rounded-xl border-2 border-dashed border-rose-200 p-6 text-center text-muted-foreground">
-                  Nenhum item adicionado. Clique em <span className="font-semibold">Adicionar item</span>{' '}
-                  para começar.
+                  Nenhum item adicionado. Clique em <span className="font-semibold">Adicionar item</span> para começar.
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-xl border border-border p-4 space-y-3 bg-white/80 shadow-sm"
-                    >
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label>Selecione do catálogo</Label>
-                          <select
-                            value={item.productId ?? ''}
-                            onChange={(event) =>
-                              handleProductSelect(item.id, event.target.value || '')
-                            }
-                            className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-rose-500 focus-visible:ring-2 focus-visible:ring-rose-500/30"
-                          >
-                            <option value="">Personalizado</option>
-                            {allProducts.map((product) => (
-                              <option key={product.id} value={product.id}>
-                                {product.name} — R$ {product.price.toFixed(2)}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor={`item-name-${item.id}`}>Nome no orçamento</Label>
-                          <Input
-                            id={`item-name-${item.id}`}
-                            value={item.productName}
-                            onChange={(event) =>
-                              handleItemChange(item.id, { productName: event.target.value })
-                            }
-                            placeholder="Descrição exibida para o cliente"
+                  {fields.map((field, index) => {
+                    const currentItem = watchedItems[index];
+                    const currentProductId = currentItem?.productId ?? '';
+                    const lineTotal = (currentItem?.quantity || 0) * (currentItem?.unitPrice || 0);
+
+                    return (
+                      <div
+                        key={field.id}
+                        className="rounded-xl border border-border p-4 space-y-3 bg-white/80 shadow-sm"
+                      >
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label>Selecione do catálogo</Label>
+                            <select
+                              value={currentProductId}
+                              onChange={(event) => handleProductSelect(field.id, event.target.value)}
+                              className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-rose-500 focus-visible:ring-2 focus-visible:ring-rose-500/30"
+                            >
+                              <option value="">Personalizado</option>
+                              {allProducts.map((product) => (
+                                <option key={product.id} value={product.id}>
+                                  {product.name} · R$ {product.price.toFixed(2)}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <FormField
+                            name={`items.${index}.productName` as const}
+                            label="Nome no orçamento"
+                            render={({ field: itemField }) => (
+                              <Input
+                                {...itemField}
+                                value={itemField.value ?? ''}
+                                onChange={(event) => itemField.onChange(event.target.value)}
+                                placeholder="Descrição exibida para o cliente"
+                              />
+                            )}
                           />
                         </div>
-                      </div>
-                      <div className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
-                        <div className="space-y-2">
-                          <Label htmlFor={`item-qty-${item.id}`}>Quantidade</Label>
-                          <Input
-                            id={`item-qty-${item.id}`}
-                            type="number"
-                            min={1}
-                            value={item.quantity}
-                            onChange={(event) =>
-                              handleItemChange(item.id, { quantity: Number(event.target.value) || 1 })
-                            }
+                        <div className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
+                          <FormField
+                            name={`items.${index}.quantity` as const}
+                            label="Quantidade"
+                            render={({ field: quantityField }) => (
+                              <Input
+                                {...quantityField}
+                                type="number"
+                                min={1}
+                                value={quantityField.value ?? 1}
+                                onChange={(event) =>
+                                  quantityField.onChange(Math.max(1, Number(event.target.value) || 1))
+                                }
+                              />
+                            )}
                           />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor={`item-price-${item.id}`}>Valor unitário</Label>
-                          <Input
-                            id={`item-price-${item.id}`}
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            value={item.unitPrice}
-                            onChange={(event) =>
-                              handleItemChange(item.id, {
-                                unitPrice: Number(event.target.value) || 0,
-                              })
-                            }
+                          <FormField
+                            name={`items.${index}.unitPrice` as const}
+                            label="Valor unitário"
+                            render={({ field: priceField }) => (
+                              <Input
+                                {...priceField}
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                value={priceField.value ?? 0}
+                                onChange={(event) => priceField.onChange(Number(event.target.value) || 0)}
+                              />
+                            )}
                           />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Total</Label>
-                          <div className="h-10 rounded-md border border-dashed border-rose-200 bg-rose-50/40 flex items-center px-3 font-semibold text-rose-700">
-                            {(item.quantity * item.unitPrice || 0).toLocaleString('pt-BR', {
-                              style: 'currency',
-                              currency: 'BRL',
-                            })}
+                          <div className="space-y-2">
+                            <Label>Total</Label>
+                            <div className="h-10 rounded-md border border-dashed border-rose-200 bg-rose-50/40 flex items-center px-3 font-semibold text-rose-700">
+                              {lineTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            </div>
+                          </div>
+                          <div className="flex items-end justify-end">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              className="text-destructive"
+                              onClick={() => handleRemoveItem(field.id)}
+                            >
+                              <Trash2 className="size-4 mr-2" />
+                              Remover
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex items-end justify-end">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            className="text-destructive"
-                            onClick={() => handleRemoveItem(item.id)}
-                          >
-                            <Trash2 className="size-4 mr-2" />
-                            Remover
-                          </Button>
-                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
-            </CardContent>
-          </Card>
+
+              {budgetForm.formState.errors.items?.message ? (
+                <Alert variant="destructive">
+                  <AlertTitle>Itens</AlertTitle>
+                  <AlertDescription>{budgetForm.formState.errors.items?.message}</AlertDescription>
+                </Alert>
+              ) : null}
+            </FormSection>
+          </div>
+
+          <div className="space-y-6">
+            <Card className="border border-dashed border-rose-200 bg-rose-50/40">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg font-semibold">Resumo</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Itens</span>
+                  <span>{fields.length}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Cliente</span>
+                  <span>
+                    {watchedClientId
+                      ? allClients.find((client) => client.id === watchedClientId)?.name ?? '—'
+                      : '—'}
+                  </span>
+                </div>
+                <div className="pt-3 border-t border-rose-200 flex items-center justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">Total estimado</span>
+                  <span className="text-3xl font-semibold text-rose-600">
+                    {totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {createQuoteMutation.error ? (
+              <Alert variant="destructive">
+                <AlertTitle>Erro ao comunicar com o Supabase</AlertTitle>
+                <AlertDescription>{createQuoteMutation.error}</AlertDescription>
+              </Alert>
+            ) : null}
+
+            <Button
+              type="submit"
+              className="w-full h-12 text-lg gradient-primary text-white shadow-lg shadow-rose-500/30 hover:shadow-xl"
+              disabled={createQuoteMutation.isMutating || isLoadingOptions}
+            >
+              {createQuoteMutation.isMutating ? (
+                <>
+                  <Loader2 className="mr-2 size-5 animate-spin" />
+                  Salvando orçamento...
+                </>
+              ) : (
+                'Salvar orçamento'
+              )}
+            </Button>
+          </div>
         </div>
-
-        <div className="space-y-6">
-          <Card className="border border-dashed border-rose-200 bg-rose-50/40">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-semibold">Resumo</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Itens</span>
-                <span>{items.length}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Cliente</span>
-                <span>
-                  {selectedClientId
-                    ? allClients.find((client) => client.id === selectedClientId)?.name
-                    : '—'}
-                </span>
-              </div>
-              <div className="pt-3 border-t border-rose-200 flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">Total estimado</span>
-                <span className="text-3xl font-semibold text-rose-600">
-                  {totalAmount.toLocaleString('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                  })}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {formError && (
-            <Alert variant="destructive">
-              <AlertTitle>Não foi possível salvar</AlertTitle>
-              <AlertDescription>{formError}</AlertDescription>
-            </Alert>
-          )}
-          {createQuoteMutation.error && !formError && (
-            <Alert variant="destructive">
-              <AlertTitle>Erro ao comunicar com o Supabase</AlertTitle>
-              <AlertDescription>{createQuoteMutation.error}</AlertDescription>
-            </Alert>
-          )}
-
-          <Button
-            className="w-full h-12 text-lg gradient-primary text-white shadow-lg shadow-rose-500/30 hover:shadow-xl"
-            onClick={() => void handleCreateQuote()}
-            disabled={createQuoteMutation.isMutating || isLoadingOptions}
-          >
-            {createQuoteMutation.isMutating ? (
-              <>
-                <Loader2 className="mr-2 size-5 animate-spin" />
-                Salvando orçamento...
-              </>
-            ) : (
-              'Salvar orçamento'
-            )}
-          </Button>
-        </div>
-      </div>
-    </div>
+      </form>
+    </FormProvider>
   );
 };
 

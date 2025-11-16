@@ -76,7 +76,7 @@ export async function updateOrderStatus({
     .update({ status })
     .eq('id', id)
     .select('id, status')
-    .maybeSingle();
+    .maybeSingle<{ id: string; status: OrderStatus }>();
 
   if (error) {
     if (httpStatus === 406 || error.code === 'PGRST116') {
@@ -90,7 +90,7 @@ export async function updateOrderStatus({
   }
 
   return {
-    id: (data as { id: string }).id,
-    status: (data as { status: OrderStatus }).status,
+    id: data.id,
+    status: data.status,
   };
 }

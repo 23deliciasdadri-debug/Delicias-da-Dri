@@ -1,10 +1,10 @@
-- [ ] Inventariar arquivos de texto com encoding inconsistente, corrigir ocorrências corrompidas (ex.: "Produ��o") e converter tudo para UTF-8.
-- [ ] Criar `.editorconfig` com charset UTF-8, finais de linha LF e regras de indentação para TS/TSX, Markdown e JSON, registrando seu uso no README.
-- [ ] Implementar `scripts/check-encoding.mjs` + `npm run check-encoding`, integrado ao pipeline local para impedir novos arquivos fora de UTF-8.
-- [ ] Reestruturar `spec/schema_sql.md` com playbook (objetivo, quem executa, validação) e matriz de acesso por papel.
-- [ ] Adicionar SQL de RLS para `profiles`, `clients` e `products`, garantindo leitura controlada por papel e mutações apenas para `admin`.
-- [ ] Definir SQL de RLS para `quotes` e `quote_items`, separando políticas de leitura e mutação e removendo caracteres corrompidos.
-- [ ] Atualizar as policies de `orders` com os status corretos e fluxos de transição (`admin`, `kitchen`, `delivery`) e incluir `force row level security`.
-- [ ] Documentar no README o playbook de policies (quando rodar, como validar, comandos auxiliares) apontando para `spec/schema_sql.md`.
-- [ ] Criar `npm run verify` (lint + typecheck + build) e configurar Husky `pre-push` rodando `npm run check-encoding && npm run verify`, com instruções de bypass.
-- [ ] Executar `npm run verify` localmente para validar a fase e anexar o resultado (ou capturas) ao PR.
+- [] Aplicar a migração em Supabase (`quotes` + funções `get_quote_public_preview` e `approve_quote_via_token`) e atualizar `schema_sql.md`.
+- [] Estender `quotesService` com `updateQuoteWithItems`, `regenerateQuotePublicLink`, `getQuotePublicPreview` e `approveQuoteViaToken`, além de expor helpers para WhatsApp/PDF.
+- [] Extrair o componente `BudgetForm` de `CreateBudgetPage`, adicionando suporte aos modos `create` e `edit` (prefill, salvamento e recalculo de total).
+- [] Atualizar `BudgetsPage` para acionar o modo edição (botão “Editar orçamento”, passagem do `quoteId` via estado/contexto e retorno suave para a lista).
+- [] Criar o componente `QuotePreview` (layout de documento, resumo do cliente, itens, totais e estado de aprovação) e integrá-lo ao drawer de detalhes.
+- [] Implementar `ShareQuoteDialog` com botões de copiar link, definir expiração e abrir WhatsApp usando o token gerado/regenerado.
+- [] Adicionar a geração de PDF com `@react-pdf/renderer` (`BudgetPdfDocument`) e conectar os botões “Baixar PDF” da visão interna e pública.
+- [] Criar o fluxo público em `PublicQuotePreviewApp` (roteamento condicional em `main.tsx`, chamada ao RPC, botão “Aprovar orçamento”).
+- [] Garantir que aprovação via link atualize status/`approved_at`, mostre confirmações e trave novas interações no preview interno e público.
+- [] Cobrir o novo preview/fluxos com Storybook + testes Playwright (renderização do documento, aprovação pública e edição completa de orçamento).

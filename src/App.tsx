@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Page } from './components/layout/Sidebar';
 import LoginPage from './features/LoginPage';
 import AppLayout from './components/layout/AppLayout';
@@ -10,10 +10,32 @@ import ProductsPage from './features/ProductsPage';
 import ClientsPage from './features/ClientsPage';
 import { useAuth } from './providers/AuthProvider';
 
+const DEFAULT_PAGE: Page = 'dashboard';
+const PERSISTENCE_KEY = 'delicias-da-dri.current-page';
+const ALLOWED_PAGES: Page[] = ['dashboard', 'orders', 'budgets', 'create-budget', 'products', 'clients'];
+
+const getInitialPage = (): Page => {
+  if (typeof window === 'undefined') {
+    return DEFAULT_PAGE;
+  }
+  const stored = window.localStorage.getItem(PERSISTENCE_KEY);
+  if (stored && ALLOWED_PAGES.includes(stored as Page)) {
+    return stored as Page;
+  }
+  return DEFAULT_PAGE;
+};
+
 const App: React.FC = () => {
   const { session, isLoading, signOut } = useAuth();
-  const [currentPage, setCurrentPage] = useState<Page>('dashboard');
+  const [currentPage, setCurrentPage] = useState<Page>(() => getInitialPage());
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.localStorage.setItem(PERSISTENCE_KEY, currentPage);
+  }, [currentPage]);
 
   const handleLogout = () => {
     void signOut();

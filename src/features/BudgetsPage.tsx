@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
@@ -34,6 +33,8 @@ import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { useSupabaseMutation } from '../hooks/useSupabaseMutation';
 import { useToast } from '../hooks/use-toast';
 import { useAuth } from '../providers/AuthProvider';
+import { FilterBar, FilterDrawer, DataTable, PaginatedList, EmptyState } from '../components/patterns';
+import type { DataTableColumn } from '../components/patterns/DataTable';
 import type { QuoteStatus } from '../types';
 import {
   QUOTES_PAGE_SIZE,
@@ -42,6 +43,7 @@ import {
   updateQuoteStatus,
   deleteQuoteWithItems,
   type QuoteDetails,
+  type QuoteListItem,
 } from '../services/quotesService';
 
 interface BudgetsPageProps {
@@ -72,7 +74,7 @@ const BudgetsPage: React.FC<BudgetsPageProps> = ({ setCurrentPage }) => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<QuoteStatus | 'ALL'>('ALL');
   const [page, setPage] = useState(1);
-
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [detailsQuote, setDetailsQuote] = useState<QuoteDetails | null>(null);
   const [isDetailsLoading, setIsDetailsLoading] = useState(false);
@@ -130,7 +132,7 @@ const BudgetsPage: React.FC<BudgetsPageProps> = ({ setCurrentPage }) => {
       setDetailsQuote(details);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao carregar detalhes.';
-      toast({ title: 'Erro', description: message, variant: 'destructive' });
+      toast({ title: 'Erro', description: message, status: 'error' });
       setDetailsQuote(null);
     } finally {
       setIsDetailsLoading(false);
@@ -147,7 +149,7 @@ const BudgetsPage: React.FC<BudgetsPageProps> = ({ setCurrentPage }) => {
       toast({
         title: 'Erro ao atualizar status',
         description: message,
-        variant: 'destructive',
+        status: 'error',
       });
       return;
     }
@@ -170,7 +172,7 @@ const BudgetsPage: React.FC<BudgetsPageProps> = ({ setCurrentPage }) => {
       toast({
         title: 'Erro ao remover orçamento',
         description: deleteQuoteMutation.error,
-        variant: 'destructive',
+        status: 'error',
       });
       return;
     }
@@ -200,6 +202,147 @@ const BudgetsPage: React.FC<BudgetsPageProps> = ({ setCurrentPage }) => {
     [],
   );
 
+  const filterSummary = totalItems
+    ? (
+        <>
+          Encontrados{' '}
+          <span className="font-semibold text-rose-600">{totalItems}</span> orçamentos
+        </>
+      )
+    : 'Use os filtros para localizar um orçamento rapidamente.';
+
+  const renderFilterFields = (prefix: string) => (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor={`${prefix}-quote-search`} className="text-sm font-medium">
+          Buscar por cliente ou telefone
+        </Label>
+        <Input
+          id={`${prefix}-quote-search`}
+          placeholder="Ex.: Maria, (11) 9..."
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={`${prefix}-quote-status`} className="text-sm font-medium">
+          Filtrar por status
+        </Label>
+        <select
+          id={`${prefix}-quote-status`}
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value as QuoteStatus | 'ALL')}
+          className="h-11 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-rose-500 focus-visible:ring-2 focus-visible:ring-rose-500/30"
+        >
+          {statusOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    </>
+  );
+
+  const handleClearFilters = () => {
+    setSearchInput('');
+    setStatusFilter('ALL');
+  };
+
+  const quotes = quotesData?.items ?? [];
+
+  const quoteColumns: DataTableColumn<QuoteListItem>[] = [
+    {
+      id: 'client',
+      label: 'Cliente',
+      cell: (quote) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-foreground">
+            {quote.client?.name ?? 'Cliente removido'}
+          </span>
+          <span className="text-xs text-muted-foreground">{quote.client?.phone ?? 'Sem contato'}</span>
+        </div>
+      ),
+    },
+    {
+      id: 'event',
+      label: 'Evento',
+      cell: (quote) => (
+        <div className="text-sm text-muted-foreground">
+          {quote.event_type || '—'}
+        </div>
+      ),
+    },
+    {
+      id: 'date',
+      label: 'Data',
+      cell: (quote) => (
+        <span className="text-sm text-muted-foreground">
+          {quote.event_date ? dateFormatter.format(new Date(quote.event_date)) : '—'}
+        </span>
+      ),
+    },
+    {
+      id: 'total',
+      label: 'Total',
+      align: 'right',
+      cell: (quote) => (
+        <span className="font-semibold text-foreground">
+          {currencyFormatter.format(quote.total_amount)}
+        </span>
+      ),
+    },
+    {
+      id: 'status',
+      label: 'Status',
+      cell: (quote) => (
+        <Badge className={STATUS_BADGES[quote.status]}>{quote.status}</Badge>
+      ),
+    },
+    {
+      id: 'actions',
+      label: 'Ações',
+      align: 'right',
+      cell: (quote) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm">
+              <MoreVertical className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48 bg-white border border-border shadow-xl">
+            <DropdownMenuItem
+              className="cursor-pointer flex items-center gap-2"
+              onClick={() => void handleOpenDetails(quote.id)}
+            >
+              <ListChecks className="size-4 text-rose-500" />
+              Ver detalhes
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer flex items-center gap-2 text-destructive"
+              onClick={() => void handleDeleteQuote(quote.id)}
+              disabled={!isAdmin || deleteQuoteMutation.isMutating}
+            >
+              <Trash2 className="size-4" />
+              Excluir orçamento
+            </DropdownMenuItem>
+            {STATUS_ACTIONS.map((statusOption) => (
+              <DropdownMenuItem
+                key={statusOption}
+                disabled={!isAdmin || updateStatusMutation.isMutating}
+                className="cursor-pointer flex items-center gap-2"
+                onClick={() => void handleStatusChange(quote.id, statusOption)}
+              >
+                <CheckCircle2 className="size-4 text-emerald-500" />
+                Marcar como {statusOption}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -213,44 +356,45 @@ const BudgetsPage: React.FC<BudgetsPageProps> = ({ setCurrentPage }) => {
           </p>
         </div>
         <Button
-          className="gradient-primary text-white shadow-lg shadow-rose-500/30 hover:shadow-xl hover:scale-[1.02] h-12 px-6"
-          onClick={() => setCurrentPage('create-budget')}
+          className="gradient-primary text-white shadow-lg shadow-rose-500/30 hover:shadow-xl hover:scale-[1.02] h-12 px-6 disabled:cursor-not-allowed disabled:opacity-70"
+          disabled={!isAdmin}
+          onClick={() => {
+            if (isAdmin) {
+              setCurrentPage('create-budget');
+            }
+          }}
+          title={isAdmin ? undefined : 'Somente administradores podem criar orçamentos.'}
         >
           <Plus className="size-5" />
           Criar orçamento
         </Button>
       </div>
+      {!isAdmin && (
+        <Alert>
+          <AlertTitle>Acesso restrito</AlertTitle>
+          <AlertDescription>
+            Você está em modo somente leitura. Entre com uma conta administrativa para criar novos
+            orçamentos.
+          </AlertDescription>
+        </Alert>
+      )}
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-2 lg:col-span-2">
-          <Label htmlFor="quote-search" className="text-sm font-medium">
-            Buscar por cliente ou telefone
-          </Label>
-          <Input
-            id="quote-search"
-            placeholder="Ex.: Maria, (11) 9..."
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="quote-status" className="text-sm font-medium">
-            Filtrar por status
-          </Label>
-          <select
-            id="quote-status"
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as QuoteStatus | 'ALL')}
-            className="h-11 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-rose-500 focus-visible:ring-2 focus-visible:ring-rose-500/30"
-          >
-            {statusOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <FilterBar
+        summary={filterSummary}
+        onOpenDrawer={() => setIsFilterDrawerOpen(true)}
+        filtersClassName="md:grid-cols-2 lg:grid-cols-3"
+      >
+        {renderFilterFields('desktop')}
+      </FilterBar>
+      <FilterDrawer
+        open={isFilterDrawerOpen}
+        onOpenChange={setIsFilterDrawerOpen}
+        title="Filtros de orçamento"
+        onClear={handleClearFilters}
+        onApply={() => setIsFilterDrawerOpen(false)}
+      >
+        {renderFilterFields('mobile')}
+      </FilterDrawer>
 
       {error && (
         <Alert variant="destructive">
@@ -265,135 +409,38 @@ const BudgetsPage: React.FC<BudgetsPageProps> = ({ setCurrentPage }) => {
         </Alert>
       )}
 
-      <Card className="border-0 shadow-lg">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gradient-to-r from-rose-50 to-orange-50 text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="p-4 text-left">Cliente</th>
-                  <th className="p-4 text-left">Evento</th>
-                  <th className="p-4 text-left">Data</th>
-                  <th className="p-4 text-left">Total</th>
-                  <th className="p-4 text-left">Status</th>
-                  <th className="p-4 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                      Carregando orçamentos...
-                    </td>
-                  </tr>
-                ) : quotesData?.items.length ? (
-                  quotesData.items.map((quote) => (
-                    <tr
-                      key={quote.id}
-                      className="border-t border-border hover:bg-rose-50/50 transition-colors"
-                    >
-                      <td className="p-4">
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-foreground">
-                            {quote.client?.name ?? 'Cliente removido'}
-                          </span>
-                          <span className="text-xs text-muted-foreground">{quote.client?.phone}</span>
-                        </div>
-                      </td>
-                      <td className="p-4 text-sm text-muted-foreground">
-                        {quote.event_type || '—'}
-                      </td>
-                      <td className="p-4 text-sm text-muted-foreground">
-                        {quote.event_date ? dateFormatter.format(new Date(quote.event_date)) : '—'}
-                      </td>
-                      <td className="p-4 font-semibold text-foreground">
-                        {currencyFormatter.format(quote.total_amount)}
-                      </td>
-                      <td className="p-4">
-                        <Badge className={`${STATUS_BADGES[quote.status]}`}>{quote.status}</Badge>
-                      </td>
-                      <td className="p-4 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon-sm">
-                              <MoreVertical className="size-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align="end"
-                            className="w-48 bg-white border border-border shadow-xl"
-                          >
-                            <DropdownMenuItem
-                              className="cursor-pointer flex items-center gap-2"
-                              onClick={() => void handleOpenDetails(quote.id)}
-                            >
-                              <ListChecks className="size-4 text-rose-500" />
-                              Ver detalhes
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="cursor-pointer flex items-center gap-2 text-destructive"
-                              onClick={() => void handleDeleteQuote(quote.id)}
-                              disabled={!isAdmin || deleteQuoteMutation.isMutating}
-                            >
-                              <Trash2 className="size-4" />
-                              Excluir orçamento
-                            </DropdownMenuItem>
-                            {STATUS_ACTIONS.map((statusOption) => (
-                              <DropdownMenuItem
-                                key={statusOption}
-                                disabled={!isAdmin || updateStatusMutation.isMutating}
-                                className="cursor-pointer flex items-center gap-2"
-                                onClick={() => void handleStatusChange(quote.id, statusOption)}
-                              >
-                                <CheckCircle2 className="size-4 text-emerald-500" />
-                                Marcar como {statusOption}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                      Nenhum orçamento encontrado para o filtro aplicado.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      <DataTable
+        data={quotes}
+        columns={quoteColumns}
+        keyExtractor={(quote) => quote.id}
+        isLoading={isLoading}
+        loadingText="Carregando orçamentos..."
+        emptyState={
+          <EmptyState
+            icon={<ListChecks className="size-8 text-rose-500" />}
+            title="Nenhum orçamento encontrado"
+            description="Ajuste os filtros ou cadastre um novo orçamento."
+            action={
+              isAdmin ? (
+                <Button onClick={() => setCurrentPage('create-budget')} className="gradient-primary text-white">
+                  <Plus className="size-4" />
+                  Novo orçamento
+                </Button>
+              ) : null
+            }
+          />
+        }
+      />
 
-      {quotesData?.items.length ? (
-        <div className="flex flex-col gap-3 border rounded-xl border-dashed border-rose-200 bg-rose-50/40 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground">
-            Página <span className="font-semibold text-rose-600">{page}</span> de {totalPages} •{' '}
-            exibindo {quotesData.items.length} de {totalItems} orçamentos
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page === 1}
-              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-            >
-              Próxima
-            </Button>
-          </div>
-        </div>
+      {totalItems > 0 ? (
+        <PaginatedList
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={QUOTES_PAGE_SIZE}
+          onPageChange={(nextPage) => setPage(Math.max(1, Math.min(totalPages, nextPage)))}
+        />
       ) : null}
-
       <Dialog
         open={isDetailsOpen}
         onOpenChange={(open) => {
@@ -496,3 +543,7 @@ const BudgetsPage: React.FC<BudgetsPageProps> = ({ setCurrentPage }) => {
 };
 
 export default BudgetsPage;
+
+
+
+

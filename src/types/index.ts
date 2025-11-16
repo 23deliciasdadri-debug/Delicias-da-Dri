@@ -14,6 +14,14 @@ export interface Product {
   created_at?: string;
 }
 
+export interface ProductMedia {
+  id: number;
+  product_id: string;
+  storage_path: string;
+  sort_order: number;
+  created_at: string;
+}
+
 export interface Client {
   id: string;
   name: string;

@@ -1,5 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, Search, Phone, Mail, UserCircle2, Trash2, PencilLine, AlertCircle } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Phone,
+  Mail,
+  UserCircle2,
+  Trash2,
+  PencilLine,
+  AlertCircle,
+  Loader2,
+} from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -16,6 +26,19 @@ import { useToast } from '../hooks/use-toast';
 import { useAuth } from '../providers/AuthProvider';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { useSupabaseMutation } from '../hooks/useSupabaseMutation';
+import {
+  FilterBar,
+  FilterDrawer,
+  DataTable,
+  PaginatedList,
+  EmptyState,
+  FormField,
+  FormSection,
+} from '../components/patterns';
+import type { DataTableColumn } from '../components/patterns/DataTable';
+import { FormProvider, useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import type { Client } from '../types';
 import {
   CLIENTS_PAGE_SIZE,
@@ -26,13 +49,15 @@ import {
   type ClientInput,
 } from '../services/clientsService';
 
-interface ClientForm {
-  name: string;
-  phone: string;
-  email: string;
-}
+const clientFormSchema = z.object({
+  name: z.string().min(1, 'Informe o nome do cliente.'),
+  phone: z.string().min(1, 'Informe um telefone válido.'),
+  email: z.string().email('Informe um email válido.').optional().or(z.literal('')),
+});
 
-const getEmptyForm = (): ClientForm => ({
+type ClientFormValues = z.infer<typeof clientFormSchema>;
+
+const getEmptyClientForm = (): ClientFormValues => ({
   name: '',
   phone: '',
   email: '',
@@ -46,17 +71,25 @@ const ClientsPage: React.FC = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [formValues, setFormValues] = useState<ClientForm>(getEmptyForm());
-  const [formError, setFormError] = useState<string | null>(null);
+  const clientForm = useForm<ClientFormValues>({
+    resolver: zodResolver(clientFormSchema),
+    defaultValues: getEmptyClientForm(),
+  });
 
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedSearch(searchInput), 350);
     return () => window.clearTimeout(timeout);
   }, [searchInput]);
+
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    setPage(1);
+  };
 
   const fetchClients = useCallback(
     () =>
@@ -103,12 +136,117 @@ const ClientsPage: React.FC = () => {
     [],
   );
 
+  const filterSummary = totalItems
+    ? (
+        <>
+          Encontrados{' '}
+          <span className="font-semibold text-rose-600">{totalItems}</span> clientes
+        </>
+      )
+    : 'Use a busca para encontrar clientes ou cadastre um novo contato.';
+
+  const renderClientFilters = (prefix: string) => (
+    <div className="space-y-2">
+      <Label htmlFor={`${prefix}-search-clients`} className="text-sm font-semibold flex items-center gap-2">
+        <Search className="size-4 text-rose-500" />
+        Buscar por nome ou telefone
+      </Label>
+      <Input
+        id={`${prefix}-search-clients`}
+        placeholder="Ex.: Maria, (11) 9..."
+        value={searchInput}
+        onChange={(event) => handleSearchChange(event.target.value)}
+      />
+    </div>
+  );
+
+  const handleClearFilters = () => {
+    handleSearchChange('');
+  };
+
+  const clients = clientsData?.items ?? [];
+
+  const clientColumns: DataTableColumn<Client>[] = [
+    {
+      id: 'client',
+      label: 'Cliente',
+      cell: (client) => (
+        <div className="flex items-center gap-3">
+          <div className="bg-rose-100 text-rose-700 rounded-full p-2">
+            <UserCircle2 className="size-5" />
+          </div>
+          <div>
+            <p className="font-semibold text-foreground">{client.name}</p>
+            <p className="text-xs text-muted-foreground">ID: {client.id.slice(0, 8)}...</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'phone',
+      label: 'Telefone',
+      cell: (client) => (
+        <div className="flex items-center gap-2 text-foreground">
+          <Phone className="size-4 text-rose-500" />
+          <span>{client.phone}</span>
+        </div>
+      ),
+    },
+    {
+      id: 'email',
+      label: 'Email',
+      cell: (client) => (
+        <div className="flex items-center gap-2 text-foreground">
+          <Mail className="size-4 text-rose-500" />
+          <span>{client.email || '—'}</span>
+        </div>
+      ),
+    },
+    {
+      id: 'created_at',
+      label: 'Cadastro',
+      cell: (client) => (
+        <span className="text-sm text-muted-foreground">
+          {client.created_at ? createdAtFormatter.format(new Date(client.created_at)) : '—'}
+        </span>
+      ),
+    },
+    {
+      id: 'actions',
+      label: 'Ações',
+      align: 'right',
+      cell: (client) => (
+        <div className="flex justify-end gap-2">
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            className="text-rose-600 hover:bg-rose-50"
+            disabled={!isAdmin}
+            onClick={() => handleEditClient(client)}
+          >
+            <PencilLine className="size-4" />
+          </Button>
+          <Button
+            size="icon-sm"
+            variant="destructive"
+            className="hover:bg-destructive/90"
+            disabled={!isAdmin || deleteClientMutation.isMutating}
+            onClick={() => void handleDeleteClient(client)}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
+      ),
+      hideOnMobile: false,
+    },
+  ];
+
   const handleModalChange = (open: boolean) => {
     setIsModalOpen(open);
     if (!open) {
       setEditingClient(null);
-      setFormValues(getEmptyForm());
-      setFormError(null);
+      clientForm.reset(getEmptyClientForm());
+      clientForm.clearErrors();
     }
   };
 
@@ -117,8 +255,8 @@ const ClientsPage: React.FC = () => {
       return;
     }
     setEditingClient(null);
-    setFormValues(getEmptyForm());
-    setFormError(null);
+    clientForm.reset(getEmptyClientForm());
+    clientForm.clearErrors();
     setIsModalOpen(true);
   };
 
@@ -127,12 +265,12 @@ const ClientsPage: React.FC = () => {
       return;
     }
     setEditingClient(client);
-    setFormValues({
+    clientForm.reset({
       name: client.name,
       phone: client.phone,
       email: client.email ?? '',
     });
-    setFormError(null);
+    clientForm.clearErrors();
     setIsModalOpen(true);
   };
 
@@ -147,10 +285,10 @@ const ClientsPage: React.FC = () => {
     const result = await deleteClientMutation.mutate(client.id);
     if (result === undefined && deleteClientMutation.error) {
       toast({
-        title: 'Erro ao excluir cliente',
-        description: deleteClientMutation.error,
-        variant: 'destructive',
-      });
+      title: 'Erro ao excluir cliente',
+      description: deleteClientMutation.error,
+      status: 'error',
+    });
       return;
     }
     toast({
@@ -162,40 +300,22 @@ const ClientsPage: React.FC = () => {
     }
   };
 
-  const handleSaveClient = async () => {
+  const handleSubmitClient = clientForm.handleSubmit(async (values) => {
     if (!isAdmin) {
-      setFormError('Apenas administradores podem criar ou editar clientes.');
-      return;
-    }
-
-    const trimmedName = formValues.name.trim();
-    const trimmedPhone = formValues.phone.trim();
-    const trimmedEmail = formValues.email.trim();
-
-    if (!trimmedName) {
-      setFormError('Informe o nome do cliente.');
-      return;
-    }
-    if (!trimmedPhone) {
-      setFormError('Informe um telefone válido.');
       return;
     }
 
     const payload: ClientInput = {
-      name: trimmedName,
-      phone: trimmedPhone,
-      email: trimmedEmail || null,
+      name: values.name.trim(),
+      phone: values.phone.trim(),
+      email: values.email?.trim() || null,
     };
-
-    setFormError(null);
 
     const saved = editingClient
       ? await updateClientMutation.mutate({ id: editingClient.id, values: payload })
       : await createClientMutation.mutate(payload);
 
     if (!saved) {
-      const mutationError = updateClientMutation.error || createClientMutation.error;
-      setFormError(mutationError ?? 'Não foi possível salvar o cliente. Tente novamente.');
       return;
     }
 
@@ -204,7 +324,7 @@ const ClientsPage: React.FC = () => {
       description: `${saved.name} agora está disponível para novos orçamentos.`,
     });
     handleModalChange(false);
-  };
+  });
 
   const mutationError = createClientMutation.error || updateClientMutation.error;
 
@@ -216,7 +336,6 @@ const ClientsPage: React.FC = () => {
           <h1 className="text-4xl font-serif font-bold bg-gradient-to-r from-rose-600 to-orange-500 bg-clip-text text-transparent">
             Relacionamento & CRM
           </h1>
-          <p className="text-muted-foreground">Gerencie contatos para novos orçamentos e pedidos.</p>
         </div>
         <Button
           onClick={handleNewClient}
@@ -238,21 +357,22 @@ const ClientsPage: React.FC = () => {
         </Alert>
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor="search-clients" className="text-sm font-semibold flex items-center gap-2">
-          <Search className="size-4 text-rose-500" />
-          Buscar por nome ou telefone
-        </Label>
-        <Input
-          id="search-clients"
-          placeholder="Ex.: Maria, (11) 9..."
-          value={searchInput}
-          onChange={(event) => {
-            setSearchInput(event.target.value);
-            setPage(1);
-          }}
-        />
-      </div>
+      <FilterBar
+        summary={filterSummary}
+        onOpenDrawer={() => setIsFilterDrawerOpen(true)}
+        filtersClassName="md:grid-cols-1"
+      >
+        {renderClientFilters('desktop')}
+      </FilterBar>
+      <FilterDrawer
+        open={isFilterDrawerOpen}
+        onOpenChange={setIsFilterDrawerOpen}
+        title="Filtros de clientes"
+        onClear={handleClearFilters}
+        onApply={() => setIsFilterDrawerOpen(false)}
+      >
+        {renderClientFilters('mobile')}
+      </FilterDrawer>
 
       {listError && (
         <Alert variant="destructive">
@@ -267,171 +387,92 @@ const ClientsPage: React.FC = () => {
         </Alert>
       )}
 
-      <div className="rounded-2xl border border-dashed border-rose-200 bg-white shadow-sm overflow-hidden">
-        <div className="grid grid-cols-[2fr_1.5fr_1.5fr_1fr_auto] gap-4 px-6 py-4 text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          <span>Cliente</span>
-          <span>Telefone</span>
-          <span>Email</span>
-          <span>Cadastro</span>
-          <span className="text-right">Ações</span>
-        </div>
-
-        {isLoading ? (
-          <div className="px-6 py-12 text-center text-muted-foreground">Carregando clientes...</div>
-        ) : clientsData?.items.length ? (
-          clientsData.items.map((client) => (
-            <div
-              key={client.id}
-              className="grid grid-cols-[2fr_1.5fr_1.5fr_1fr_auto] gap-4 px-6 py-5 border-t border-border/60 text-sm items-center"
-            >
-              <div className="flex items-center gap-3">
-                <div className="bg-rose-100 text-rose-700 rounded-full p-2">
-                  <UserCircle2 className="size-5" />
-                </div>
-                <div>
-                  <p className="font-semibold text-foreground">{client.name}</p>
-                  <p className="text-xs text-muted-foreground">ID: {client.id.slice(0, 8)}...</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-foreground">
-                <Phone className="size-4 text-rose-500" />
-                <span>{client.phone}</span>
-              </div>
-              <div className="flex items-center gap-2 text-foreground">
-                <Mail className="size-4 text-rose-500" />
-                <span>{client.email || '—'}</span>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {client.created_at ? createdAtFormatter.format(new Date(client.created_at)) : '—'}
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  size="icon-sm"
-                  variant="ghost"
-                  className="text-rose-600 hover:bg-rose-50"
-                  disabled={!isAdmin}
-                  onClick={() => handleEditClient(client)}
-                >
-                  <PencilLine className="size-4" />
+      <DataTable
+        data={clients}
+        columns={clientColumns}
+        keyExtractor={(client) => client.id}
+        isLoading={isLoading}
+        loadingText="Carregando clientes..."
+        emptyState={
+          <EmptyState
+            icon={<UserCircle2 className="size-10 text-rose-500" />}
+            title="Nenhum cliente encontrado"
+            description="Ajuste a busca ou cadastre um novo cliente."
+            action={
+              isAdmin ? (
+                <Button onClick={handleNewClient} className="gradient-primary text-white">
+                  <Plus className="size-4" />
+                  Novo cliente
                 </Button>
-                <Button
-                  size="icon-sm"
-                  variant="destructive"
-                  className="hover:bg-destructive/90"
-                  disabled={!isAdmin || deleteClientMutation.isMutating}
-                  onClick={() => void handleDeleteClient(client)}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="px-6 py-12 text-center text-muted-foreground">
-            Nenhum cliente encontrado para o filtro aplicado.
-          </div>
-        )}
-      </div>
+              ) : null
+            }
+          />
+        }
+      />
 
-      {clientsData?.items.length ? (
-        <div className="flex flex-col gap-3 border rounded-xl border-dashed border-rose-200 bg-rose-50/40 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground">
-            Página <span className="font-semibold text-rose-600">{page}</span> de {totalPages} •{' '}
-            exibindo {clientsData.items.length} de {totalItems} clientes
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page === 1}
-              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
-            >
-              Próxima
-            </Button>
-          </div>
-        </div>
+      {totalItems > 0 ? (
+        <PaginatedList
+          page={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={CLIENTS_PAGE_SIZE}
+          onPageChange={(nextPage) => setPage(Math.max(1, Math.min(totalPages, nextPage)))}
+        />
       ) : null}
-
       <Dialog open={isModalOpen} onOpenChange={handleModalChange}>
         <DialogContent className="max-w-lg bg-white">
-          <DialogHeader>
-            <DialogTitle>{editingClient ? 'Editar cliente' : 'Novo cliente'}</DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground">
-              Os dados serão salvos na tabela <code>clients</code>.
-            </DialogDescription>
-          </DialogHeader>
+          <FormProvider {...clientForm}>
+            <form className="space-y-5" onSubmit={handleSubmitClient}>
+              <DialogHeader>
+                <DialogTitle>{editingClient ? 'Editar cliente' : 'Novo cliente'}</DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                Todos os dados vão direto para a tabela <code>clients</code>.
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="client-name">Nome completo</Label>
-              <Input
-                id="client-name"
-                placeholder="Ex.: Maria Silva"
-                value={formValues.name}
-                onChange={(event) => setFormValues((prev) => ({ ...prev, name: event.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="client-phone">Telefone / WhatsApp</Label>
-              <Input
-                id="client-phone"
-                placeholder="(11) 9 8888-0000"
-                value={formValues.phone}
-                onChange={(event) => setFormValues((prev) => ({ ...prev, phone: event.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="client-email">Email (opcional)</Label>
-              <Input
-                id="client-email"
-                type="email"
-                placeholder="cliente@email.com"
-                value={formValues.email}
-                onChange={(event) => setFormValues((prev) => ({ ...prev, email: event.target.value }))}
-              />
-            </div>
-
-            {formError && (
-              <Alert variant="destructive">
-                <AlertTitle>Verifique os dados</AlertTitle>
-                <AlertDescription>{formError}</AlertDescription>
-              </Alert>
-            )}
-
-            {mutationError && !formError && (
-              <Alert variant="destructive">
-                <AlertTitle>Erro de Supabase</AlertTitle>
-                <AlertDescription>{mutationError}</AlertDescription>
-              </Alert>
-            )}
-          </div>
-
-          <DialogFooter className="pt-4">
-            {editingClient && (
-              <Button
-                variant="destructive"
-                className="mr-auto"
-                onClick={() => void handleDeleteClient(editingClient, { closeModal: true })}
-                disabled={deleteClientMutation.isMutating}
+              <FormSection
+                title="Dados do cliente"
+                description="Essas informações são usadas nos orçamentos e contatos."
               >
-                {deleteClientMutation.isMutating ? 'Apagando...' : 'Excluir cliente'}
-              </Button>
-            )}
-            <Button variant="outline" onClick={() => handleModalChange(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={() => void handleSaveClient()} disabled={isSaving}>
-              {isSaving ? 'Salvando...' : editingClient ? 'Salvar alterações' : 'Cadastrar cliente'}
-            </Button>
-          </DialogFooter>
+                <FormField
+                  name="name"
+                  label="Nome"
+                  required
+                  render={({ field }) => <Input {...field} placeholder="Nome completo" />}
+                />
+                <FormField
+                  name="phone"
+                  label="Telefone"
+                  required
+                  render={({ field }) => <Input {...field} placeholder="(11) 99999-9999" />}
+                />
+                <FormField
+                  name="email"
+                  label="Email"
+                  render={({ field }) => (
+                    <Input {...field} type="email" placeholder="email@cliente.com" />
+                  )}
+                />
+              </FormSection>
+
+              {mutationError ? (
+                <Alert variant="destructive">
+                  <AlertTitle>Erro de Supabase</AlertTitle>
+                  <AlertDescription>{mutationError}</AlertDescription>
+                </Alert>
+              ) : null}
+
+              <DialogFooter className="pt-4">
+                <Button type="button" variant="outline" onClick={() => handleModalChange(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving && <Loader2 className="size-4 animate-spin" />}
+                  {editingClient ? 'Salvar alterações' : 'Cadastrar cliente'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </FormProvider>
         </DialogContent>
       </Dialog>
     </div>
@@ -439,3 +480,13 @@ const ClientsPage: React.FC = () => {
 };
 
 export default ClientsPage;
+
+
+
+
+
+
+
+
+
+

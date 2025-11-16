@@ -9,4 +9,5 @@ export interface ToastProps {
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: ToastActionElement;
+  status?: 'default' | 'success' | 'error' | 'info';
 }

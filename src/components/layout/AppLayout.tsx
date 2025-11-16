@@ -1,7 +1,9 @@
 import React from 'react';
 import Sidebar, { Page } from './Sidebar';
-import { Button } from '../ui/button';
-import { Menu } from 'lucide-react';
+import { TopBar } from './TopBar';
+import { MobileNavBar } from './MobileNavBar';
+import { PAGE_META } from './navigation';
+import { useAuth } from '../../providers/AuthProvider';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -20,44 +22,54 @@ const AppLayout: React.FC<AppLayoutProps> = ({
   setIsSidebarOpen,
   handleLogout,
 }) => {
+  const { profile } = useAuth();
+  const pageTitle = PAGE_META[currentPage]?.label ?? 'Painel';
+
+  const navigateToPage = React.useCallback(
+    (page: Page) => {
+      setCurrentPage(page);
+      setIsSidebarOpen(false);
+    },
+    [setCurrentPage, setIsSidebarOpen],
+  );
+
   const closeSidebar = () => setIsSidebarOpen(false);
-  const handleOverlayKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      closeSidebar();
-    }
-  };
+  const openSidebar = () => setIsSidebarOpen(true);
+
+  const userName = profile?.full_name || profile?.email || 'Usuário';
+  const userRole = profile?.role;
+  const avatarUrl = profile?.avatar_url;
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-rose-50/30">
       <Sidebar
         currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
+        setCurrentPage={navigateToPage}
         isSidebarOpen={isSidebarOpen}
         setIsSidebarOpen={setIsSidebarOpen}
         handleLogout={handleLogout}
       />
       {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity"
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity lg:hidden"
           onClick={closeSidebar}
-          onKeyDown={handleOverlayKeyDown}
-          role="button"
-          tabIndex={0}
           aria-label="Fechar menu lateral"
         />
       )}
-      <main className="flex-1 p-6 lg:p-10 overflow-auto">
-        <Button
-          variant="outline"
-          size="sm"
-          className="lg:hidden mb-6 border-2 hover:border-rose-500 hover:bg-rose-50 bg-transparent"
-          onClick={() => setIsSidebarOpen(true)}
-        >
-          <Menu className="w-5 h-5" />
-        </Button>
-        {children}
-      </main>
+      <div className="flex flex-1 flex-col">
+        <TopBar
+          title={pageTitle}
+          onOpenSidebar={openSidebar}
+          userName={userName}
+          userRole={userRole}
+          avatarUrl={avatarUrl}
+        />
+        <main className="flex-1 overflow-y-auto px-4 pb-28 pt-4 lg:px-10 lg:pb-10 lg:pt-6">
+          {children}
+        </main>
+        <MobileNavBar currentPage={currentPage} onNavigate={navigateToPage} />
+      </div>
     </div>
   );
 };

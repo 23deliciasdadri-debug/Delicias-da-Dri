@@ -1,8 +1,8 @@
 import React from 'react';
 import { Button } from '../ui/button';
-import { LayoutDashboard, ClipboardList, FileText, Package, LogOut, Cake, Users2 } from 'lucide-react';
-
-export type Page = 'login' | 'dashboard' | 'orders' | 'budgets' | 'create-budget' | 'products' | 'clients';
+import { Cake, LogOut } from 'lucide-react';
+import type { Page } from './navigation';
+import { PRIMARY_NAV_ITEMS } from './navigation';
 
 interface SidebarProps {
   currentPage: Page;
@@ -26,75 +26,60 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      className={`fixed lg:static inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-white to-rose-50/30 border-r border-border shadow-xl lg:shadow-none transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
+      className={`fixed inset-y-0 left-0 z-50 w-72 border-r border-border bg-gradient-to-b from-white to-rose-50/30 shadow-xl transition-transform duration-300 lg:static lg:shadow-none ${
+        isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      }`}
+      aria-label="Menu lateral"
     >
-      <div className="p-6 border-b border-border/50">
+      <div className="border-border/50 border-b p-6">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 gradient-primary rounded-2xl flex items-center justify-center shadow-lg shadow-rose-500/30">
-            <Cake className="w-7 h-7 text-white" />
+          <div className="gradient-primary flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg shadow-rose-500/30">
+            <Cake className="h-7 w-7 text-white" aria-hidden />
           </div>
           <div>
-            <h2 className="font-serif font-bold text-xl text-foreground">Delícias da Dri</h2>
-            <p className="text-sm text-muted-foreground font-medium">Admin Panel</p>
+            <h2 className="text-xl font-serif font-bold text-foreground">Delícias da Dri</h2>
+            <p className="text-sm font-medium text-muted-foreground">Admin Panel</p>
           </div>
         </div>
       </div>
-      <nav className="p-4 space-y-2">
-        <Button
-          variant={currentPage === 'dashboard' ? 'secondary' : 'ghost'}
-          className={`w-full justify-start h-12 text-base font-medium ${currentPage === 'dashboard' ? 'bg-gradient-to-r from-rose-100 to-orange-100 text-rose-700 shadow-sm' : 'hover:bg-rose-50'}`}
-          onClick={() => handleNavigation('dashboard')}
-        >
-          <LayoutDashboard className="w-5 h-5 mr-3" />
-          Dashboard
-        </Button>
-        <Button
-          variant={currentPage === 'orders' ? 'secondary' : 'ghost'}
-          className={`w-full justify-start h-12 text-base font-medium ${currentPage === 'orders' ? 'bg-gradient-to-r from-rose-100 to-orange-100 text-rose-700 shadow-sm' : 'hover:bg-rose-50'}`}
-          onClick={() => handleNavigation('orders')}
-        >
-          <ClipboardList className="w-5 h-5 mr-3" />
-          Pedidos
-        </Button>
-        <Button
-          variant={
-            currentPage === 'budgets' || currentPage === 'create-budget' ? 'secondary' : 'ghost'
-          }
-          className={`w-full justify-start h-12 text-base font-medium ${currentPage === 'budgets' || currentPage === 'create-budget' ? 'bg-gradient-to-r from-rose-100 to-orange-100 text-rose-700 shadow-sm' : 'hover:bg-rose-50'}`}
-          onClick={() => handleNavigation('budgets')}
-        >
-          <FileText className="w-5 h-5 mr-3" />
-          Orçamentos
-        </Button>
-        <Button
-          variant={currentPage === 'products' ? 'secondary' : 'ghost'}
-          className={`w-full justify-start h-12 text-base font-medium ${currentPage === 'products' ? 'bg-gradient-to-r from-rose-100 to-orange-100 text-rose-700 shadow-sm' : 'hover:bg-rose-50'}`}
-          onClick={() => handleNavigation('products')}
-        >
-          <Package className="w-5 h-5 mr-3" />
-          Produtos
-        </Button>
-        <Button
-          variant={currentPage === 'clients' ? 'secondary' : 'ghost'}
-          className={`w-full justify-start h-12 text-base font-medium ${currentPage === 'clients' ? 'bg-gradient-to-r from-rose-100 to-orange-100 text-rose-700 shadow-sm' : 'hover:bg-rose-50'}`}
-          onClick={() => handleNavigation('clients')}
-        >
-          <Users2 className="w-5 h-5 mr-3" />
-          Clientes
-        </Button>
+      <nav className="space-y-2 p-4" aria-label="Navegação principal">
+        {PRIMARY_NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const isActive =
+            currentPage === item.page ||
+            (item.page === 'budgets' && currentPage === 'create-budget');
+          return (
+            <Button
+              key={item.page}
+              variant={isActive ? 'secondary' : 'ghost'}
+              className={`h-12 w-full justify-start text-base font-medium ${
+                isActive
+                  ? 'bg-gradient-to-r from-rose-100 to-orange-100 text-rose-700 shadow-sm'
+                  : 'hover:bg-rose-50'
+              }`}
+              onClick={() => handleNavigation(item.page)}
+              aria-current={isActive ? 'page' : undefined}
+            >
+              <Icon className="mr-3 h-5 w-5" aria-hidden />
+              {item.label}
+            </Button>
+          );
+        })}
       </nav>
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border/50 bg-white/50 backdrop-blur-sm">
+      <div className="absolute bottom-0 left-0 right-0 border-t border-border/50 bg-white/70 p-4 backdrop-blur-sm">
         <Button
           variant="ghost"
-          className="w-full justify-start h-12 text-muted-foreground hover:text-rose-600 hover:bg-rose-50"
+          className="h-12 w-full justify-start text-muted-foreground hover:bg-rose-50 hover:text-rose-600"
           onClick={handleLogout}
         >
-          <LogOut className="w-5 h-5 mr-3" />
+          <LogOut className="mr-3 h-5 w-5" aria-hidden />
           Sair
         </Button>
       </div>
     </aside>
   );
 };
+
+export type { Page } from './navigation';
 
 export default Sidebar;

@@ -1,5 +1,6 @@
 // Inspired by react-hot-toast library
 import * as React from 'react';
+import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 
 import type { ToastActionElement, ToastProps } from '../components/ui/toast';
 
@@ -133,10 +134,40 @@ function dispatch(action: Action) {
   });
 }
 
-type Toast = Omit<ToasterToast, 'id'>;
+type ToastStatus = 'default' | 'success' | 'error' | 'info';
 
-function toast({ ...props }: Toast) {
+type Toast = Omit<ToasterToast, 'id'> & {
+  status?: ToastStatus;
+};
+
+const statusIconMap: Record<ToastStatus, React.ReactNode | null> = {
+  default: null,
+  success: React.createElement(CheckCircle2, {
+    className: 'size-4 text-emerald-600',
+    'aria-hidden': true,
+  }),
+  error: React.createElement(AlertTriangle, {
+    className: 'size-4 text-rose-600',
+    'aria-hidden': true,
+  }),
+  info: React.createElement(Info, {
+    className: 'size-4 text-muted-foreground',
+    'aria-hidden': true,
+  }),
+};
+
+function toast({ status = 'default', ...props }: Toast) {
   const id = genId();
+
+  const resolvedTitle =
+    props.title && statusIconMap[status]
+      ? React.createElement(
+          'span',
+          { className: 'inline-flex items-center gap-2' },
+          statusIconMap[status],
+          React.createElement('span', null, props.title),
+        )
+      : props.title;
 
   const update = (props: ToasterToast) =>
     dispatch({
@@ -149,6 +180,8 @@ function toast({ ...props }: Toast) {
     type: actionTypes.ADD_TOAST,
     toast: {
       ...props,
+      status,
+      title: resolvedTitle,
       id,
       open: true,
       onOpenChange: (open) => {
@@ -175,7 +208,7 @@ function useToast() {
         listeners.splice(index, 1);
       }
     };
-  }, [state]);
+  }, []);
 
   return {
     ...state,
