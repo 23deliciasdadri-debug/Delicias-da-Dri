@@ -6,25 +6,28 @@ export type DashboardPeriod = 'LAST_30_DAYS' | 'THIS_MONTH' | 'THIS_YEAR' | 'ALL
 export interface DashboardRevenuePoint {
   key: string;
   label: string;
-  value: number;
+  revenue: number;
+  expenses: number;
 }
 
-export interface DashboardRecentOrder {
+export interface DashboardActivityItem {
   id: string;
-  clientName: string;
-  status: OrderStatus;
-  totalAmount: number;
-  deliveryDate: string | null;
+  type: 'order' | 'expense';
+  label: string;
+  status: string;
+  amount: number;
+  date: string | null;
 }
 
 export interface DashboardData {
   periodLabel: string;
   totalRevenue: number;
+  expenses: number;
   deliveredOrders: number;
   approvedQuotes: number;
   newClients: number;
   revenueTrend: DashboardRevenuePoint[];
-  recentOrders: DashboardRecentOrder[];
+  recentActivity: DashboardActivityItem[];
 }
 
 interface PeriodConfig {
@@ -117,11 +120,15 @@ function buildRevenueTrend(rows: DeliveredOrderRow[]): DashboardRevenuePoint[] {
   for (let i = 0; i < monthsToShow; i += 1) {
     const current = new Date(start.getFullYear(), start.getMonth() + i, 1);
     const key = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
-    const value = Number(buckets.get(key) ?? 0);
+    const revenue = Number(buckets.get(key) ?? 0);
+    // Mock expenses as 40-60% of revenue + some random variance
+    const expenses = Math.floor(revenue * (0.4 + Math.random() * 0.2));
+
     result.push({
       key,
       label: formatter.format(current),
-      value,
+      revenue,
+      expenses,
     });
   }
 
@@ -192,22 +199,50 @@ export async function fetchDashboardData(period: DashboardPeriod): Promise<Dashb
   const deliveredRows = ((ordersResponse.data ?? []) as unknown) as DeliveredOrderRow[];
   const totalRevenue = deliveredRows.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0);
 
+  // Mock total expenses
+  const expenses = Math.floor(totalRevenue * 0.45);
+
   const recentOrdersRaw = ((recentOrdersResponse.data ?? []) as unknown) as RecentOrderRow[];
-  const recentOrders: DashboardRecentOrder[] = recentOrdersRaw.map((row) => ({
+
+  const recentActivity: DashboardActivityItem[] = recentOrdersRaw.map((row) => ({
     id: row.id,
+    type: 'order',
+    label: row.client?.name ?? 'Cliente',
     status: row.status,
-    totalAmount: Number(row.total_amount ?? 0),
-    deliveryDate: row.delivery_date ?? null,
-    clientName: row.client?.name ?? 'Cliente',
+    amount: Number(row.total_amount ?? 0),
+    date: row.delivery_date ?? null,
   }));
+
+  // Inject some mock expenses into recent activity if list is short or just to mix it up
+  if (recentActivity.length > 0) {
+    recentActivity.splice(1, 0, {
+      id: 'exp-1',
+      type: 'expense',
+      label: 'Supermercado Atacadão',
+      status: 'Pago',
+      amount: 450.00,
+      date: new Date().toISOString(),
+    });
+    if (recentActivity.length > 3) {
+      recentActivity.splice(3, 0, {
+        id: 'exp-2',
+        type: 'expense',
+        label: 'Embalagens & Cia',
+        status: 'Pendente',
+        amount: 120.50,
+        date: new Date(Date.now() - 86400000).toISOString(),
+      });
+    }
+  }
 
   return {
     periodLabel: label,
     totalRevenue,
+    expenses,
     deliveredOrders: deliveredRows.length,
     approvedQuotes: quotesResponse.count ?? 0,
     newClients: clientsResponse.count ?? 0,
     revenueTrend: buildRevenueTrend(deliveredRows),
-    recentOrders,
+    recentActivity: recentActivity.slice(0, 6), // Limit to 6 items
   };
 }

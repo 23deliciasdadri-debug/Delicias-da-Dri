@@ -23,15 +23,7 @@ const DARK_ICON = '/favicon-dark.svg';
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 const resolveInitialTheme = (): ThemeMode => {
-  if (typeof window === 'undefined') {
-    return 'light';
-  }
-  const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (stored === 'light' || stored === 'dark') {
-    return stored;
-  }
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  return prefersDark ? 'dark' : 'light';
+  return 'light';
 };
 
 const syncFavicon = (theme: ThemeMode) => {
@@ -106,14 +98,29 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setThemeState((prev) => {
-      const next = prev === 'light' ? 'dark' : 'light';
-      hasExplicitPreference.current = true;
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(STORAGE_KEY, next);
+    // Dark mode disabled for now
+    setThemeState('light');
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(STORAGE_KEY, 'light');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== STORAGE_KEY) {
+        return;
       }
-      return next;
-    });
+      const next = event.newValue;
+      if (next === 'light' || next === 'dark') {
+        hasExplicitPreference.current = true;
+        setThemeState(next);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   const value = useMemo<ThemeContextValue>(

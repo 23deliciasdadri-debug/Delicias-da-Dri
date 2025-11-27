@@ -1,41 +1,50 @@
 import React from 'react';
-import { PRIMARY_NAV_ITEMS } from './navigation';
-import type { Page } from './navigation';
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
+import { LucideIcon } from 'lucide-react';
 
-interface MobileNavBarProps {
-  currentPage: Page;
-  onNavigate: (page: Page) => void;
+interface MenuItem {
+  icon: LucideIcon;
+  label: string;
+  path: string;
 }
 
-export const MobileNavBar: React.FC<MobileNavBarProps> = ({ currentPage, onNavigate }) => (
-  <nav
-    className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/80 bg-card/95 px-2 py-2 backdrop-blur transition-colors dark:bg-card/60 lg:hidden"
-    aria-label="Navegação principal mobile"
-  >
-    <ul className="grid grid-cols-5 gap-1">
-      {PRIMARY_NAV_ITEMS.map((item) => {
-        const Icon = item.icon;
-        const isActive = currentPage === item.page;
-        return (
-          <li key={item.page}>
-            <button
-              type="button"
-              onClick={() => onNavigate(item.page)}
-              aria-current={isActive ? 'page' : undefined}
-              className={cn(
-                'flex w-full flex-col items-center rounded-xl px-2 py-2 text-xs font-medium',
-                isActive
-                  ? 'bg-gradient-to-r from-rose-100 to-orange-100 text-rose-700 shadow-sm'
-                  : 'text-muted-foreground hover:bg-muted',
-              )}
-            >
-              <Icon className="mb-1 h-4 w-4" aria-hidden />
-              <span>{item.shortLabel}</span>
-            </button>
-          </li>
-        );
-      })}
-    </ul>
-  </nav>
-);
+interface MobileNavBarProps {
+  items: MenuItem[];
+}
+
+export const MobileNavBar: React.FC<MobileNavBarProps> = ({ items }) => {
+  const location = useLocation();
+  const isActive = (path: string) => location.pathname.startsWith(path);
+
+  return (
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 px-6 py-3 backdrop-blur lg:hidden"
+      aria-label="Navegação principal mobile"
+    >
+      <ul className="flex justify-between items-center">
+        {items.map((item) => {
+          const active = isActive(item.path);
+          return (
+            <li key={item.path}>
+              <Link
+                to={item.path}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'flex items-center justify-center rounded-xl p-2 transition-colors',
+                  active
+                    ? 'bg-rose-50 text-rose-600'
+                    : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600',
+                )}
+                title={item.label}
+              >
+                <item.icon className="h-6 w-6" aria-hidden />
+                <span className="sr-only">{item.label}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+};

@@ -1,14 +1,24 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FormProvider, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import {
+  Loader2,
+  Plus,
+  Trash2,
+  ArrowLeft,
+  Save,
+  Share2,
+  Calendar as CalendarIcon
+} from 'lucide-react';
 
-import { FormField, FormSection } from '../../components/patterns';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
+import { Separator } from '../../components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
 import { useSupabaseQuery } from '../../hooks/useSupabaseQuery';
 import { useSupabaseMutation } from '../../hooks/useSupabaseMutation';
@@ -54,7 +64,7 @@ const createEmptyItem = (): BudgetFormValues['items'][number] => ({
 const mapQuoteToFormValues = (quote?: QuoteDetails | null): BudgetFormValues => ({
   client_id: quote?.client_id ?? '',
   event_type: quote?.event_type ?? '',
-  event_date: quote?.event_date ?? '',
+  event_date: quote?.event_date ? new Date(quote.event_date).toISOString().split('T')[0] : '',
   notes: quote?.notes ?? '',
   items: (quote?.items ?? []).map((item) => ({
     id: String(item.id ?? Math.random().toString(36).slice(2, 10)),
@@ -75,11 +85,6 @@ interface BudgetFormProps {
   subtitle?: string;
 }
 
-const DEFAULT_SUBTITLES: Record<BudgetFormMode, string> = {
-  create: 'Preencha os dados do evento, selecione itens e gere uma proposta.',
-  edit: 'Ajuste valores, itens e observações antes de reenviar ao cliente.',
-};
-
 const BudgetForm: React.FC<BudgetFormProps> = ({
   mode = 'create',
   quote,
@@ -90,9 +95,6 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
   subtitle,
 }) => {
   const { toast } = useToast();
-
-  const resolvedTitle = title ?? (mode === 'edit' ? 'Editar orçamento' : 'Criar orçamento');
-  const resolvedSubtitle = subtitle ?? DEFAULT_SUBTITLES[mode];
 
   const fetchClients = useCallback(() => listClients({ pageSize: 1000 }), []);
   const {
@@ -138,22 +140,20 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
 
   useEffect(() => {
     if (mode === 'edit' && quote) {
+      // Only reset if the quote ID or updated_at changes to avoid loops
       budgetForm.reset(mapQuoteToFormValues(quote));
     }
-  }, [budgetForm, mode, quote]);
+  }, [mode, quote?.id, quote?.updated_at]); // Removed budgetForm from deps to be safe, though it's stable
 
   const { fields, append, remove } = useFieldArray({
     control: budgetForm.control,
     name: 'items',
   });
+  const [addCount, setAddCount] = useState<number>(1);
 
   const watchedItems = useWatch<BudgetFormValues, 'items'>({
     control: budgetForm.control,
     name: 'items',
-  });
-  const watchedClientId = useWatch<BudgetFormValues, 'client_id'>({
-    control: budgetForm.control,
-    name: 'client_id',
   });
 
   const allClients = clientsData?.items ?? [];
@@ -169,21 +169,17 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
     [watchedItems],
   );
 
-  const handleAddItem = () => append(createEmptyItem());
-
-  const handleRemoveItem = (fieldId: string) => {
-    const index = fields.findIndex((field) => field.id === fieldId);
-    if (index >= 0) {
-      remove(index);
-    }
+  const handleAddItem = (count = 1) => {
+    const safeCount = Number.isFinite(count) && count > 0 ? Math.floor(count) : 1;
+    const payload = Array.from({ length: safeCount }, () => createEmptyItem());
+    append(payload);
   };
 
-  const handleProductSelect = (fieldId: string, productId: string) => {
-    const index = fields.findIndex((field) => field.id === fieldId);
-    if (index < 0) {
-      return;
-    }
+  const handleRemoveItem = (index: number) => {
+    remove(index);
+  };
 
+  const handleProductSelect = (index: number, productId: string) => {
     budgetForm.setValue(`items.${index}.productId`, productId || '', { shouldDirty: true });
     const product = allProducts.find((candidate) => candidate.id === productId);
     if (product?.name) {
@@ -217,25 +213,20 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
     const result =
       mode === 'edit'
         ? await updateQuoteMutation.mutate({
-            quoteId: quote?.id ?? '',
-            quote: quotePayload,
-            quoteItems: quoteItemsPayload,
-          })
+          quoteId: quote?.id ?? '',
+          quote: quotePayload,
+          quoteItems: quoteItemsPayload,
+        })
         : await createQuoteMutation.mutate({
-            quote: quotePayload,
-            quoteItems: quoteItemsPayload,
-          });
+          quote: quotePayload,
+          quoteItems: quoteItemsPayload,
+        });
 
-    if (!result) {
-      return;
-    }
+    if (!result) return;
 
     toast({
-      title: mode === 'edit' ? 'orçamento atualizado' : 'orçamento criado',
-      description:
-        mode === 'edit'
-          ? 'As alterações foram salvas e já estão disponiveis na lista.'
-          : 'O orçamento foi salvo e já aparece na listagem.',
+      title: mode === 'edit' ? 'Orçamento atualizado' : 'Orçamento criado',
+      description: mode === 'edit' ? 'Alterações salvas com sucesso.' : 'Novo orçamento gerado com sucesso.',
     });
 
     if (mode === 'create') {
@@ -244,7 +235,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
         event_type: '',
         event_date: '',
         notes: '',
-        items: [],
+        items: [createEmptyItem()],
       });
     } else {
       budgetForm.reset(values);
@@ -257,7 +248,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3 text-muted-foreground">
         <Loader2 className="size-6 animate-spin text-rose-500" />
-        <p>Carregando informacoes do orcamento...</p>
+        <p>Carregando informações...</p>
       </div>
     );
   }
@@ -265,276 +256,263 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
   if (mode === 'edit' && !quote) {
     return (
       <Alert>
-        <AlertTitle>Selecione um orcamento</AlertTitle>
-        <AlertDescription>Escolha um registro para carregar os dados antes de editar.</AlertDescription>
+        <AlertTitle>Erro</AlertTitle>
+        <AlertDescription>Orçamento não encontrado.</AlertDescription>
       </Alert>
     );
   }
 
   return (
-    <FormProvider {...budgetForm}>
-      <form className="space-y-8" onSubmit={handleSubmitBudget}>
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="space-y-1">
-            <p className="text-sm uppercase tracking-widest text-muted-foreground">
-              {mode === 'edit' ? 'Modo edição' : 'Novo fluxo'}
-            </p>
-            <h1 className="text-4xl font-serif font-bold bg-gradient-to-r from-rose-600 to-orange-500 bg-clip-text text-transparent">
-              {resolvedTitle}
-            </h1>
-            <p className="text-muted-foreground">{resolvedSubtitle}</p>
-          </div>
-          {onBack ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onBack}
-              className="h-11 px-6 border-2 hover:border-rose-500 hover:text-rose-600"
-            >
-              Voltar
-            </Button>
-          ) : null}
+    <div className="fade-in pb-20">
+      {/* Header */}
+      <div className="flex items-center mb-8">
+        {onBack && (
+          <Button variant="ghost" size="icon" onClick={onBack} className="mr-4">
+            <ArrowLeft className="h-5 w-5 text-slate-500" />
+          </Button>
+        )}
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">{title || (mode === 'edit' ? 'Editar Orçamento' : 'Novo Orçamento')}</h1>
+          <p className="text-slate-500">{subtitle || (mode === 'edit' ? 'Atualize os dados da proposta.' : 'Preencha os dados para gerar uma nova proposta.')}</p>
         </div>
+      </div>
 
-        <div className="grid gap-8 lg:grid-cols-3">
+      <FormProvider {...budgetForm}>
+        <form onSubmit={handleSubmitBudget} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Form */}
           <div className="lg:col-span-2 space-y-6">
-            <FormSection title="Cliente" description="Selecione quem receberá o orçamento.">
-              {clientsError ? (
-                <Alert variant="destructive">
-                  <AlertTitle>Erro ao carregar clientes</AlertTitle>
-                  <AlertDescription>{clientsError}</AlertDescription>
-                </Alert>
-              ) : (
-                <FormField
-                  name="client_id"
-                  label="Selecione o cliente"
-                  required
-                  render={({ field }) => (
-                    <select
-                      {...field}
-                      disabled={isLoadingClients}
-                      className="h-11 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-rose-500 focus-visible:ring-2 focus-visible:ring-rose-500/30 disabled:opacity-60"
-                    >
-                      <option value="">Selecione...</option>
-                      {allClients.map((client) => (
-                        <option key={client.id} value={client.id}>
-                          {client.name} - {client.phone}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                />
-              )}
-            </FormSection>
 
-            <FormSection title="Evento" description="Contexto e observações.">
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField name="event_type" label="Tipo de evento" render={({ field }) => <Input {...field} />} />
-                <FormField
-                  name="event_date"
-                  label="Data do evento"
-                  render={({ field }) => <Input {...field} type="date" />}
-                />
-              </div>
-              <FormField
-                name="notes"
-                label="observações"
-                render={({ field }) => (
-                  <textarea
-                    {...field}
-                    rows={4}
-                    placeholder="Detalhes de entrega, restrições, referencias..."
-                    className="min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-rose-500 focus-visible:ring-2 focus-visible:ring-rose-500/30"
-                  />
-                )}
-              />
-            </FormSection>
+            {/* Client & Event Details */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg">Informações do Cliente</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Cliente</Label>
+                    {clientsError ? (
+                      <p className="text-sm text-red-500">Erro ao carregar clientes</p>
+                    ) : (
+                      <Select
+                        value={budgetForm.watch('client_id')}
+                        onValueChange={(val) => budgetForm.setValue('client_id', val, { shouldDirty: true })}
+                        disabled={isLoadingClients}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um cliente" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {allClients.map((client) => (
+                            <SelectItem key={client.id} value={client.id}>
+                              {client.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    {budgetForm.formState.errors.client_id && (
+                      <p className="text-xs text-red-500">{budgetForm.formState.errors.client_id.message}</p>
+                    )}
+                  </div>
 
-            <FormSection
-              title="Itens do orçamento"
-              description="Monte a proposta usando itens do catalogo ou personalizados."
-              actions={
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-9 border-dashed"
-                  onClick={handleAddItem}
-                  disabled={isLoadingOptions}
-                >
-                  <Plus className="mr-2 size-4" />
-                  Adicionar item
-                </Button>
-              }
-            >
-              {productsError ? (
-                <Alert variant="destructive">
-                  <AlertTitle>Erro ao carregar produtos</AlertTitle>
-                  <AlertDescription>{productsError}</AlertDescription>
-                </Alert>
-              ) : null}
+                  <div className="space-y-2">
+                    <Label>Tipo de Evento</Label>
+                    <Input {...budgetForm.register('event_type')} placeholder="Ex: Aniversário, Casamento..." />
+                  </div>
 
-              {!fields.length ? (
-                <div className="rounded-xl border-2 border-dashed border-rose-200 p-6 text-center text-muted-foreground">
-                  Nenhum item adicionado. Clique em <span className="font-semibold">Adicionar item</span> para comecar.
+                  <div className="space-y-2">
+                    <Label>Data do Evento</Label>
+                    <div className="relative">
+                      <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                      <Input {...budgetForm.register('event_date')} type="date" className="pl-10" />
+                    </div>
+                  </div>
                 </div>
-              ) : (
+
+                <div className="space-y-2">
+                  <Label>Observações</Label>
+                  <Textarea
+                    {...budgetForm.register('notes')}
+                    placeholder="Detalhes importantes, restrições alimentares, referências..."
+                    className="min-h-[100px]"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Items Builder */}
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">Itens da Proposta</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {productsError && <p className="text-sm text-red-500 mb-4">Erro ao carregar produtos</p>}
+
                 <div className="space-y-4">
                   {fields.map((field, index) => {
                     const currentItem = watchedItems[index];
-                    const currentProductId = currentItem?.productId ?? '';
                     const lineTotal = (currentItem?.quantity || 0) * (currentItem?.unitPrice || 0);
 
                     return (
-                      <div
-                        key={field.id}
-                        className="rounded-xl border border-border bg-card/80 p-4 space-y-3 shadow-sm"
-                      >
-                        <div className="grid gap-3 md:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label>Selecione do catalogo</Label>
-                            <select
-                              value={currentProductId}
-                              onChange={(event) => handleProductSelect(field.id, event.target.value)}
-                              className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-rose-500 focus-visible:ring-2 focus-visible:ring-rose-500/30"
-                            >
-                              <option value="">Personalizado</option>
-                              {allProducts.map((product) => (
-                                <option key={product.id} value={product.id}>
-                                  {product.name} - R$ {product.price.toFixed(2)}
-                                </option>
+                      <div key={field.id} className="grid grid-cols-12 gap-3 items-end p-3 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                        <div className="col-span-12 md:col-span-5 space-y-1.5">
+                          <Label className="text-xs text-slate-500">Produto</Label>
+                          <Select
+                            value={currentItem?.productId || 'custom'}
+                            onValueChange={(val) => handleProductSelect(index, val === 'custom' ? '' : val)}
+                          >
+                            <SelectTrigger className="bg-white">
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="custom">Personalizado</SelectItem>
+                              {allProducts.map((p) => (
+                                <SelectItem key={p.id} value={p.id}>{p.name} - R$ {p.price.toFixed(2)}</SelectItem>
                               ))}
-                            </select>
-                          </div>
-                          <FormField
-                            name={`items.${index}.productName` as const}
-                            label="Nome no orçamento"
-                            render={({ field: itemField }) => (
-                              <Input
-                                {...itemField}
-                                value={itemField.value ?? ''}
-                                onChange={(event) => itemField.onChange(event.target.value)}
-                                placeholder="Descrição exibida para o cliente"
-                              />
-                            )}
+                            </SelectContent>
+                          </Select>
+                          {/* Hidden input for custom name if needed, or just use the name field below */}
+                          <Input
+                            {...budgetForm.register(`items.${index}.productName`)}
+                            placeholder="Nome do item"
+                            className="mt-1 bg-white"
                           />
                         </div>
-                        <div className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
-                          <FormField
-                            name={`items.${index}.quantity` as const}
-                            label="Quantidade"
-                            render={({ field: quantityField }) => (
-                              <Input
-                                {...quantityField}
-                                type="number"
-                                min={1}
-                                value={quantityField.value ?? 1}
-                                onChange={(event) =>
-                                  quantityField.onChange(Math.max(1, Number(event.target.value) || 1))
-                                }
-                              />
-                            )}
+
+                        <div className="col-span-4 md:col-span-2 space-y-1.5">
+                          <Label className="text-xs text-slate-500">Qtd</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            {...budgetForm.register(`items.${index}.quantity`, { valueAsNumber: true })}
+                            className="bg-white"
                           />
-                          <FormField
-                            name={`items.${index}.unitPrice` as const}
-                            label="Valor unitario"
-                            render={({ field: priceField }) => (
-                              <Input
-                                {...priceField}
-                                type="number"
-                                min={0}
-                                step="0.01"
-                                value={priceField.value ?? 0}
-                                onChange={(event) => priceField.onChange(Number(event.target.value) || 0)}
-                              />
-                            )}
+                        </div>
+
+                        <div className="col-span-4 md:col-span-2 space-y-1.5">
+                          <Label className="text-xs text-slate-500">Valor Un.</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            {...budgetForm.register(`items.${index}.unitPrice`, { valueAsNumber: true })}
+                            className="bg-white"
                           />
-                          <div className="space-y-2">
-                            <Label>Total</Label>
-                            <div className="h-10 rounded-md border border-dashed border-rose-200 bg-rose-50/40 flex items-center px-3 font-semibold text-rose-700">
-                              {lineTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                            </div>
+                        </div>
+
+                        <div className="col-span-3 md:col-span-2 space-y-1.5">
+                          <Label className="text-xs text-slate-500">Subtotal</Label>
+                          <div className="h-10 flex items-center font-medium text-slate-700">
+                            {lineTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                           </div>
-                          <div className="flex items-end justify-end">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              className="text-destructive"
-                              onClick={() => handleRemoveItem(field.id)}
-                            >
-                              <Trash2 className="size-4 mr-2" />
-                              Remover
-                            </Button>
-                          </div>
+                        </div>
+
+                        <div className="col-span-1 flex justify-end pb-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRemoveItem(index)}
+                            className="text-slate-400 hover:text-rose-600"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     );
                   })}
                 </div>
-              )}
-
-              {budgetForm.formState.errors.items?.message ? (
-                <Alert variant="destructive">
-                  <AlertTitle>Itens</AlertTitle>
-                  <AlertDescription>{budgetForm.formState.errors.items?.message}</AlertDescription>
-                </Alert>
-              ) : null}
-            </FormSection>
-          </div>
-
-          <div className="space-y-6">
-            <Card className="border border-dashed border-rose-200 bg-rose-50/40">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-semibold">Resumo</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Itens</span>
-                  <span>{fields.length}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Cliente</span>
-                  <span>
-                    {watchedClientId
-                      ? allClients.find((client) => client.id === watchedClientId)?.name ?? '-'
-                      : '-'}
-                  </span>
-                </div>
-                <div className="pt-3 border-t border-rose-200 flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">Total estimado</span>
-                  <span className="text-3xl font-semibold text-rose-600">
-                    {totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  </span>
+                {budgetForm.formState.errors.items && (
+                  <p className="text-sm text-red-500 mt-4">{budgetForm.formState.errors.items.message}</p>
+                )}
+                <div className="mt-6 flex flex-col md:flex-row md:items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-slate-500">Quantidade</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={addCount}
+                      onChange={(e) => setAddCount(Math.max(1, Number(e.target.value) || 1))}
+                      className="w-24"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 h-12 border-dashed"
+                    disabled={isLoadingOptions}
+                    onClick={() => handleAddItem(addCount)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {addCount > 1 ? `Adicionar ${addCount} itens` : 'Adicionar Item'}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-
-            {activeMutation.error ? (
-              <Alert variant="destructive">
-                <AlertTitle>Erro ao comunicar com o Supabase</AlertTitle>
-                <AlertDescription>{activeMutation.error}</AlertDescription>
-              </Alert>
-            ) : null}
-
-            <Button
-              type="submit"
-              className="w-full h-12 text-lg gradient-primary text-white shadow-lg shadow-rose-500/30 hover:shadow-xl"
-              disabled={activeMutation.isMutating || isLoadingOptions}
-            >
-              {activeMutation.isMutating ? (
-                <>
-                  <Loader2 className="mr-2 size-5 animate-spin" />
-                  {mode === 'edit' ? 'Salvando alterações...' : 'Salvando orçamento...'}
-                </>
-              ) : mode === 'edit' ? (
-                'Salvar alterações'
-              ) : (
-                'Salvar orçamento'
-              )}
-            </Button>
           </div>
-        </div>
-      </form>
-    </FormProvider>
+
+          {/* Sidebar Summary */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-8 space-y-6">
+              <Card className="border-slate-200 shadow-md bg-white overflow-hidden">
+                <CardHeader>
+                  <CardTitle className="text-lg">Resumo da Proposta</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between text-sm text-slate-600">
+                    <span>Itens adicionados</span>
+                    <span className="font-medium">{fields.length}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-slate-600">
+                    <span>Cliente</span>
+                    <span className="font-medium truncate max-w-[150px]">
+                      {allClients.find(c => c.id === budgetForm.watch('client_id'))?.name || '-'}
+                    </span>
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex justify-between items-end pt-2">
+                    <span className="font-semibold text-slate-900">Total Estimado</span>
+                    <span className="text-2xl font-bold text-slate-900">
+                      {totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </span>
+                  </div>
+
+                  {activeMutation.error && (
+                    <Alert variant="destructive" className="mt-4">
+                      <AlertTitle>Erro</AlertTitle>
+                      <AlertDescription>{activeMutation.error}</AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+                <CardFooter className="flex flex-col gap-3 bg-slate-50/50 p-6">
+                  <Button
+                    type="submit"
+                    className="w-full bg-rose-500 hover:bg-rose-600 h-11 text-lg"
+                    disabled={activeMutation.isMutating || isLoadingOptions}
+                  >
+                    {activeMutation.isMutating ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="mr-2 h-4 w-4" />
+                    )}
+                    {mode === 'edit' ? 'Salvar Alterações' : 'Salvar Orçamento'}
+                  </Button>
+                  {mode === 'edit' && (
+                    <Button type="button" variant="outline" className="w-full border-slate-200 text-slate-700 hover:bg-slate-50">
+                      <Share2 className="mr-2 h-4 w-4" />
+                      Salvar e Compartilhar
+                    </Button>
+                  )}
+                </CardFooter>
+              </Card>
+            </div>
+          </div>
+        </form>
+      </FormProvider>
+    </div>
   );
 };
 

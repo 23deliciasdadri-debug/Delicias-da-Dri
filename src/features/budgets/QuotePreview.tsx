@@ -1,169 +1,224 @@
-import React, { useMemo } from 'react';
-import { Calendar, CheckCircle2 } from 'lucide-react';
-
-import type { QuoteDetails } from '../../services/quotesService';
-import { prepareQuoteDocumentData } from '../../services/quotesService';
+﻿import React from 'react';
+import { Tag, MessageCircle, Pencil, Trash2 } from 'lucide-react';
 import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import type { QuoteDetails } from '../../services/quotesService';
 import { cn } from '../../lib/utils';
 
-const STATUS_LABELS: Record<string, { label: string; className: string }> = {
-  Pendente: {
-    label: 'Pendente',
-    className: 'bg-amber-50 text-amber-700 border border-amber-200',
-  },
-  Aprovado: {
-    label: 'Aprovado',
-    className: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-  },
-  Recusado: {
-    label: 'Recusado',
-    className: 'bg-rose-50 text-rose-700 border border-rose-200',
-  },
+interface QuotePreviewProps {
+  quote: QuoteDetails;
+  className?: string;
+  variant?: 'admin' | 'public';
+  footerActions?: React.ReactNode;
+  onGenerateOrCopyLink?: () => void;
+  onShareWhatsapp?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  isSharing?: boolean;
+}
+
+const STATUS_STYLES: Record<string, string> = {
+  Pendente: 'bg-amber-100 text-amber-800',
+  Aprovado: 'bg-emerald-100 text-emerald-800',
+  Recusado: 'bg-rose-100 text-rose-800',
 };
 
 const formatDate = (value?: string | null) => {
-  if (!value) return 'Sem data definida';
+  if (!value) return 'Não informado';
   try {
-    return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'full' }).format(new Date(value));
+    return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(value));
   } catch {
     return value;
   }
 };
 
-interface QuotePreviewProps {
-  quote: QuoteDetails;
-  headerActions?: React.ReactNode;
-  footerActions?: React.ReactNode;
-  showApproveHint?: boolean;
-  className?: string;
-}
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+const InfoRow = ({ label, value }: { label: string; value?: string | null }) => (
+  <div className="space-y-1 text-sm">
+    <p className="text-[11px] uppercase tracking-[0.08em] text-slate-500">{label}</p>
+    <p className="text-slate-900 font-semibold">{value || 'Não informado'}</p>
+  </div>
+);
 
 const QuotePreview: React.FC<QuotePreviewProps> = ({
   quote,
-  headerActions,
-  footerActions,
-  showApproveHint = false,
   className,
+  variant = 'admin',
+  footerActions,
+  onGenerateOrCopyLink,
+  onShareWhatsapp,
+  onEdit,
+  onDelete,
+  isSharing,
 }) => {
-  const documentData = useMemo(() => prepareQuoteDocumentData({ quote, client: quote.client || undefined, items: quote.items }), [quote]);
-  const statusInfo = STATUS_LABELS[quote.status] ?? STATUS_LABELS.Pendente;
-  const isQuoteApproved = quote.status === 'Aprovado';
+  const statusClass = STATUS_STYLES[quote.status] ?? STATUS_STYLES.Pendente;
+  const client = quote.client;
+  const items = quote.items ?? [];
+  const totalItems = items.reduce(
+    (acc, item) => acc + Number((item as any).quantity ?? 0),
+    0,
+  );
 
   return (
     <div
       className={cn(
-        'rounded-2xl border bg-card shadow-lg shadow-rose-100/50 overflow-hidden flex flex-col',
+        variant === 'public'
+          ? 'bg-gradient-to-b from-rose-50 to-rose-100/60 min-h-[70vh]'
+          : 'rounded-2xl border border-rose-100 shadow-xl overflow-hidden bg-gradient-to-b from-rose-50 to-rose-100/60',
         className,
       )}
     >
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b px-6 py-5 bg-gradient-to-r from-rose-50 to-orange-50">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Orcamento #{quote.id.slice(0, 8)}</p>
-          <h2 className="text-3xl font-serif font-bold text-foreground mt-1">{quote.event_type || 'Proposta personalizada'}</h2>
-          <p className="text-sm text-muted-foreground">{documentData.client.name || 'Cliente não identificado'}</p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <Badge className={statusInfo.className}>{statusInfo.label}</Badge>
-          <p className="text-xs text-muted-foreground">Atualizado em {formatDate(documentData.updatedAt)}</p>
-          {headerActions}
-        </div>
-      </div>
-
-      <div className="grid gap-6 p-6 md:grid-cols-[2fr_1fr]">
-        <section className="space-y-4">
-          <div className="rounded-xl border border-dashed border-rose-200 p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase">Informações do cliente</h3>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div>
-                <p className="text-xs text-muted-foreground">Nome</p>
-                <p className="font-medium text-foreground">{documentData.client.name || 'Não informado'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Telefone</p>
-                <p className="font-medium text-foreground">{documentData.client.phone || 'Não informado'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">E-mail</p>
-                <p className="font-medium text-foreground">{documentData.client.email || 'Não informado'}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="size-4 text-rose-500" />
-                <p className="text-sm text-foreground">{formatDate(documentData.eventDate)}</p>
-              </div>
-            </div>
+      <div className="mx-auto max-w-5xl">
+        <div className="px-6 py-5 border-b border-rose-100 bg-rose-50/60">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-lg font-semibold text-slate-900">
+              {variant === 'public' ? 'Visualização de orçamento' : 'Resumo do orçamento'}
+            </h2>
+            <p className="text-sm text-slate-600">
+              {variant === 'public'
+                ? 'Este link é seguro e permite apenas a leitura deste documento.'
+                : 'Visualize os itens enviados ao cliente e notas complementares.'}
+            </p>
           </div>
+        </div>
 
-          <div className="rounded-xl border border-border overflow-hidden">
-            <div className="bg-muted px-4 py-3 text-sm font-semibold text-muted-foreground uppercase">Itens detalhados</div>
-            <div className="divide-y divide-border">
-              {documentData.items.length ? (
-                documentData.items.map((item) => (
-                  <div key={item.id} className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-2 px-4 py-3 text-sm items-center">
-                    <span className="font-medium text-foreground">{item.title}</span>
-                    <span className="text-center text-muted-foreground">{item.quantity} un.</span>
-                    <span className="text-right text-muted-foreground">{item.formattedUnitPrice}</span>
-                    <span className="text-right font-semibold text-foreground">{item.formattedSubtotal}</span>
-                  </div>
-                ))
-              ) : (
-                <div className="px-4 py-6 text-center text-sm text-muted-foreground">Nenhum item cadastrado.</div>
+        <div className="p-6 space-y-6">
+          <div className="flex flex-col gap-4 md:gap-2 md:flex-row md:items-start md:justify-between">
+            <div className="space-y-1">
+              <p className="text-[11px] uppercase tracking-[0.1em] text-rose-500">
+                ORÇAMENTO #{quote.id.slice(0, 6)}
+              </p>
+              <h1 className="text-3xl font-black text-slate-900">{quote.event_type || 'Orçamento'}</h1>
+              <p className="text-sm text-slate-600">{client?.name || 'Cliente não informado'}</p>
+            </div>
+            <div className="flex flex-col items-end gap-2 text-right">
+              <Badge className={cn('px-3 py-1 text-xs font-semibold', statusClass)}>{quote.status}</Badge>
+              <p className="text-xs text-slate-500">
+                Atualizado em {formatDate(quote.updated_at || quote.created_at)}
+              </p>
+              {variant === 'admin' && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-full border border-rose-200 bg-white shadow-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onGenerateOrCopyLink?.();
+                    }}
+                    disabled={isSharing}
+                    title="Gerar/Copiar link público"
+                  >
+                    <Tag className="h-4 w-4 text-rose-500" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-full border border-rose-200 bg-white shadow-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onShareWhatsapp?.();
+                    }}
+                    disabled={!quote.public_link_token}
+                    title="Enviar por WhatsApp"
+                  >
+                    <MessageCircle className="h-4 w-4 text-rose-500" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-full border border-rose-200 bg-white shadow-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit?.();
+                    }}
+                    title="Editar orçamento"
+                  >
+                    <Pencil className="h-4 w-4 text-slate-700" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 rounded-full border border-rose-200 bg-white shadow-sm text-rose-600 hover:text-rose-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete?.();
+                    }}
+                    title="Excluir orçamento"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               )}
             </div>
           </div>
 
-          {documentData.notes ? (
-            <div className="rounded-xl border border-dashed border-rose-200 p-4 bg-rose-50/50">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-2">Observações</h3>
-              <p className="text-sm text-foreground whitespace-pre-line">{documentData.notes}</p>
-            </div>
-          ) : null}
-        </section>
-
-        <aside className="space-y-4">
-          <div className="rounded-2xl border border-dashed border-rose-200 bg-rose-50/60 p-5 space-y-4">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Resumo financeiro</p>
-              <p className="text-4xl font-bold text-rose-600">{documentData.formattedTotal}</p>
-            </div>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <div className="flex items-center justify-between">
-                <span>Quantidade de itens</span>
-                <span className="font-semibold text-foreground">{documentData.items.length}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Cliente</span>
-                <span className="font-semibold text-foreground truncate max-w-[160px]">
-                  {documentData.client.name || '-'}
-                </span>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 rounded-2xl border border-rose-100 bg-white/70 p-4 space-y-4">
+              <h3 className="text-sm font-semibold text-slate-800 tracking-wide">Informações do cliente</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InfoRow label="Nome" value={client?.name} />
+                <InfoRow label="Telefone" value={client?.phone} />
+                <InfoRow label="E-mail" value={client?.email} />
+                <InfoRow label="Data do evento" value={formatDate(quote.event_date)} />
               </div>
             </div>
-            {isQuoteApproved ? (
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-3 text-sm text-emerald-700 flex items-start gap-2">
-                <CheckCircle2 className="size-4 mt-0.5" />
-                <p>Este orcamento foi aprovado e esta bloqueado para alteracoes.</p>
-              </div>
-            ) : showApproveHint ? (
-              <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-card/80 p-3 text-sm text-emerald-700">
-                <CheckCircle2 className="size-4 mt-0.5" />
+            <div className="rounded-2xl border border-rose-100 bg-white/70 p-4 space-y-2">
+              <p className="text-sm font-semibold text-slate-800 tracking-wide">Resumo financeiro</p>
+              <p className="text-3xl font-extrabold text-rose-600">{formatCurrency(quote.total_amount)}</p>
+              <div className="text-sm text-slate-700 space-y-1">
                 <p>
-                  Ao aprovar este orcamento, registraremos automaticamente a data e notificaremos aos nosso colaboradores.
+                  Quantidade de itens:{' '}
+                  <span className="font-semibold">{totalItems}</span>
+                </p>
+                <p>
+                  Cliente: <span className="font-semibold">{client?.name || 'Não informado'}</span>
                 </p>
               </div>
-            ) : null}
-            {footerActions ? <div className="flex flex-col gap-2">{footerActions}</div> : null}
+            </div>
           </div>
-          <div className="rounded-xl border border-border p-4 space-y-2 text-sm text-muted-foreground">
-            <p>
-              Documento gerado em{' '}
-              <span className="font-semibold text-foreground">{formatDate(documentData.createdAt)}</span>
-            </p>
-            {documentData.approvedAt ? (
-              <p className="text-emerald-600 font-medium">
-                Aprovado em {formatDate(documentData.approvedAt)}
-              </p>
-            ) : null}
+
+          <div className="rounded-2xl border border-rose-100 bg-white/70 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold text-slate-800 tracking-wide">Itens detalhados</h4>
+            </div>
+            <div className="divide-y divide-rose-100">
+              {items.length > 0 ? (
+                items.map((item) => {
+                  const name = (item as any).product_name_copy || (item as any).title || 'Item';
+                  const quantity = Number((item as any).quantity ?? 0);
+                  const price = Number((item as any).price_at_creation ?? (item as any).unit_price ?? 0);
+                  const lineTotal = price * quantity;
+                  return (
+                    <div key={item.id} className="py-3 flex items-center text-sm">
+                      <div className="flex-1 font-semibold text-slate-900">{name}</div>
+                      <div className="w-20 text-center text-slate-600">{quantity} un.</div>
+                      <div className="w-28 text-right text-slate-600">{formatCurrency(price)}</div>
+                      <div className="w-28 text-right font-semibold text-slate-900">{formatCurrency(lineTotal)}</div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="py-6 text-center text-slate-500 text-sm">Nenhum item adicionado.</div>
+              )}
+            </div>
           </div>
-        </aside>
+
+          {quote.notes && (
+            <div className="rounded-2xl border border-rose-100 bg-white/70 p-4">
+              <h4 className="text-sm font-semibold text-slate-800 tracking-wide mb-2">Observações</h4>
+              <p className="text-sm text-slate-700 whitespace-pre-line">{quote.notes}</p>
+            </div>
+          )}
+
+          {footerActions && (
+            <div className="rounded-2xl border border-rose-100 bg-white/70 p-4 space-y-3">
+              {footerActions}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

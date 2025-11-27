@@ -1,14 +1,17 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+﻿import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
-  Calendar,
-  Loader2,
-  Mail,
-  MapPin,
-  MessageCircle,
-  Phone,
+  CheckCircle2,
+  Clock,
+  Package,
+  Truck,
+  MoreVertical,
+  Printer,
+  AlertCircle,
+  ArrowRight,
   RefreshCw,
-  UserRound,
+  Search,
+  Plus
 } from 'lucide-react';
 import {
   DndContext,
@@ -20,194 +23,71 @@ import {
   closestCenter,
   useDroppable,
   useSensor,
-  useSensors,
+  useSensors
 } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+
+import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Button } from '../components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
+import { Separator } from '../components/ui/separator';
+import { ScrollArea } from '../components/ui/scroll-area';
+import { Input } from '../components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
-import { LoadingState } from '../components/patterns';
+import { Checkbox } from '../components/ui/checkbox';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { toast } from 'sonner';
+
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { useSupabaseMutation } from '../hooks/useSupabaseMutation';
-import { useToast } from '../hooks/use-toast';
 import { useAuth } from '../providers/AuthProvider';
-import type { OrderStatus, ProfileRole, QuoteItem } from '../types';
+import { StatusMenu } from '../components/patterns/StatusBadge';
+import { ORDER_STATUS_OPTIONS, ORDER_STATUSES } from '../constants/status';
 import { listOrders, updateOrderStatus, type OrderWithDetails } from '../services/ordersService';
+import type { OrderStatus, ProfileRole } from '../types';
+import { ViewSwitcher, type ViewType } from '../components/ViewSwitcher';
+import { CalendarView } from '../components/CalendarView';
+import { AppDialog } from '../components/patterns/AppDialog';
+import { OrderFormDialog } from './orders/OrderFormDialog';
+import OrderPreview from './orders/OrderPreview';
+import { deleteOrder } from '../services/ordersService';
 
-const ALL_STATUSES: OrderStatus[] = [
-  'Aprovado',
-  'Em Produção',
-  'Pronto para Entrega',
-  'Em Entrega',
-  'Entregue',
-  'Cancelado',
-];
+// Constants & Types
+const ALL_STATUSES: OrderStatus[] = ORDER_STATUSES;
 
-const DEFAULT_STATUS_META = {
-  label: 'Status',
-  badgeClass: 'bg-slate-600 text-white',
-  cardBg: 'bg-card/95 text-foreground border border-border/60 shadow-lg shadow-rose-900/5 dark:bg-slate-900/70 dark:text-foreground dark:border-slate-800',
+const COLUMNS_CONFIG: Record<OrderStatus, { title: string; icon: any; color: string }> = {
+  'Aprovado': { title: 'Aprovado', icon: Clock, color: 'bg-blue-50 text-blue-700 border-blue-200' },
+  'Em Produção': { title: 'Em Produção', icon: Package, color: 'bg-amber-50 text-amber-700 border-amber-200' },
+  'Pronto para Entrega': { title: 'Pronto para Entrega', icon: Truck, color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  'Em Entrega': { title: 'Em Entrega', icon: Truck, color: 'bg-orange-50 text-orange-700 border-orange-200' },
+  'Entregue': { title: 'Entregue', icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  'Cancelado': { title: 'Cancelado', icon: AlertCircle, color: 'bg-rose-50 text-rose-700 border-rose-200' }
 };
-
-const STATUS_META: Record<OrderStatus, typeof DEFAULT_STATUS_META> = {
-  Aprovado: {
-    label: 'Aprovado',
-    badgeClass: 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white',
-    cardBg: 'bg-blue-50/95 text-slate-900 border border-blue-100 shadow-blue-500/20 dark:bg-blue-500/20 dark:text-blue-50 dark:border-blue-500/40',
-  },
-  'Em Produção': {
-    label: 'Em Produção',
-    badgeClass: 'bg-gradient-to-r from-amber-500 to-orange-500 text-white',
-    cardBg: 'bg-amber-50/95 text-slate-900 border border-amber-100 shadow-orange-500/20 dark:bg-amber-500/20 dark:text-amber-50 dark:border-amber-500/40',
-  },
-  'Pronto para Entrega': {
-    label: 'Pronto para Entrega',
-    badgeClass: 'bg-gradient-to-r from-purple-600 to-pink-500 text-white',
-    cardBg: 'bg-purple-50/95 text-slate-900 border border-purple-100 shadow-purple-500/15 dark:bg-purple-500/20 dark:text-purple-50 dark:border-purple-500/40',
-  },
-  'Em Entrega': {
-    label: 'Em Entrega',
-    badgeClass: 'bg-gradient-to-r from-orange-500 to-red-500 text-white',
-    cardBg: 'bg-orange-50/95 text-slate-900 border border-orange-100 shadow-orange-500/20 dark:bg-orange-500/20 dark:text-orange-50 dark:border-orange-500/40',
-  },
-  Entregue: {
-    label: 'Entregue',
-    badgeClass: 'bg-gradient-to-r from-emerald-500 to-green-500 text-white',
-    cardBg: 'bg-emerald-50/95 text-slate-900 border border-emerald-100 shadow-emerald-500/15 dark:bg-emerald-500/20 dark:text-emerald-50 dark:border-emerald-500/40',
-  },
-  Cancelado: {
-    label: 'Cancelado',
-    badgeClass: 'bg-gradient-to-r from-rose-600 to-red-500 text-white',
-    cardBg: 'bg-rose-50/95 text-slate-900 border border-rose-100 shadow-rose-500/15 dark:bg-rose-500/20 dark:text-rose-50 dark:border-rose-500/40',
-  },
-};
-
 const ROLE_VISIBLE_STATUSES: Record<ProfileRole, OrderStatus[]> = {
   admin: ALL_STATUSES,
   kitchen: ['Aprovado', 'Em Produção'],
   delivery: ['Pronto para Entrega', 'Em Entrega'],
 };
 
-const ROLE_TRANSITIONS: Record<
-  Exclude<ProfileRole, 'admin'>,
-  Partial<Record<OrderStatus, OrderStatus[]>>
-> = {
-  kitchen: {
-    Aprovado: ['Em Produção'],
-    'Em Produção': ['Pronto para Entrega'],
-  },
-  delivery: {
-    'Pronto para Entrega': ['Em Entrega'],
-    'Em Entrega': ['Entregue'],
-  },
-};
-
-const currencyFormatter = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-});
-
-const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
-  day: '2-digit',
-  month: 'short',
-  year: 'numeric',
-});
-
-const getStatusMeta = (status: OrderStatus) => STATUS_META[status] ?? DEFAULT_STATUS_META;
-
 const getVisibleStatuses = (role?: ProfileRole) =>
   role ? ROLE_VISIBLE_STATUSES[role] ?? ALL_STATUSES : ALL_STATUSES;
 
-const getAllowedTransitions = (status: OrderStatus, role?: ProfileRole): OrderStatus[] => {
-  if (!role) {
-    return [];
-  }
-  if (role === 'admin') {
-    return ALL_STATUSES.filter((item) => item !== status);
-  }
-  const rules = ROLE_TRANSITIONS[role];
-  return rules?.[status] ?? [];
-};
-
-const formatDeliveryDate = (value?: string | null) => {
-  if (!value) {
-    return 'Sem data definida';
-  }
-  const parsed = value.includes('T') ? new Date(value) : new Date(`${value}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-  return dateFormatter.format(parsed);
-};
-
-const getItemsPreview = (items: QuoteItem[]) => {
-  if (!items.length) {
-    return 'Sem itens vinculados';
-  }
-  if (items.length === 1) {
-    const item = items[0];
-    return `${item.quantity}x ${item.product_name_copy}`;
-  }
-  if (items.length === 2) {
-    const [first, second] = items;
-    return `${first.quantity}x ${first.product_name_copy} + ${second.quantity}x ${second.product_name_copy}`;
-  }
-  const [first, second] = items;
-  const remaining = items.length - 2;
-  return `${first.quantity}x ${first.product_name_copy}, ${second.quantity}x ${second.product_name_copy} + ${remaining} itens`;
-};
-
-const getLineTotal = (item: QuoteItem) => {
-  const unitPrice = Number(item.price_at_creation ?? 0);
-  return unitPrice * Number(item.quantity ?? 0);
-};
-
-const buildColumns = (
-  orders?: OrderWithDetails[],
-): Record<OrderStatus, OrderWithDetails[]> => {
+const buildColumns = (orders?: OrderWithDetails[]): Record<OrderStatus, OrderWithDetails[]> => {
   const base = {} as Record<OrderStatus, OrderWithDetails[]>;
-  ALL_STATUSES.forEach((status) => {
-    base[status] = [];
-  });
+  ALL_STATUSES.forEach((status) => { base[status] = []; });
   (orders ?? []).forEach((order) => {
-    if (!base[order.status]) {
-      base[order.status] = [];
-    }
-    base[order.status].push(order);
+    if (base[order.status]) base[order.status].push(order);
   });
   return base;
 };
 
-const cloneColumns = (
-  columns: Record<OrderStatus, OrderWithDetails[]>,
-): Record<OrderStatus, OrderWithDetails[]> => {
-  const clone = {} as Record<OrderStatus, OrderWithDetails[]>;
-  ALL_STATUSES.forEach((status) => {
-    clone[status] = [...(columns[status] ?? [])];
-  });
-  return clone;
-};
-
-const findOrderLocation = (
-  columns: Record<OrderStatus, OrderWithDetails[]>,
-  orderId: string,
-) => {
+const findOrderLocation = (columns: Record<OrderStatus, OrderWithDetails[]>, orderId: string) => {
   for (const status of ALL_STATUSES) {
     const column = columns[status] ?? [];
     const index = column.findIndex((order) => order.id === orderId);
-    if (index >= 0) {
-      return { status, index, order: column[index] };
-    }
+    if (index >= 0) return { status, index, order: column[index] };
   }
   return null;
 };
@@ -216,160 +96,100 @@ const moveOrderToStatus = (
   columns: Record<OrderStatus, OrderWithDetails[]>,
   orderId: string,
   targetStatus: OrderStatus,
-  targetIndex?: number,
+  targetIndex?: number
 ) => {
   const location = findOrderLocation(columns, orderId);
-  if (!location) {
-    return columns;
-  }
-  const clone = cloneColumns(columns);
+  if (!location) return columns;
+
+  const clone = { ...columns };
+  // Deep copy arrays
+  ALL_STATUSES.forEach(s => { clone[s] = [...(columns[s] || [])]; });
+
   const [order] = clone[location.status].splice(location.index, 1);
-  if (!order) {
-    return columns;
-  }
+  if (!order) return columns;
+
   const updatedOrder = { ...order, status: targetStatus };
-  const targetColumn = clone[targetStatus] ?? [];
-  const insertionIndex =
-    targetIndex !== undefined ? Math.min(targetIndex, targetColumn.length) : targetColumn.length;
+  const targetColumn = clone[targetStatus];
+  const insertionIndex = targetIndex !== undefined ? Math.min(targetIndex, targetColumn.length) : targetColumn.length;
   targetColumn.splice(insertionIndex, 0, updatedOrder);
-  clone[targetStatus] = targetColumn;
+
   return clone;
 };
 
-const sanitizePhone = (phone?: string | null) => phone?.replace(/\D/g, '') ?? '';
-
-const getWhatsAppLink = (phone?: string | null, clientName?: string | null) => {
-  const digits = sanitizePhone(phone);
-  if (!digits) {
-    return null;
-  }
-  const text = encodeURIComponent(
-    `Olá!${clientName ? ` ${clientName}` : ''}! Muito bom ter você conosco.`,
-  );
-  return `https://wa.me/${digits}?text=${text}`;
-};
-
-const isStatusId = (value: string): value is OrderStatus => ALL_STATUSES.includes(value as OrderStatus);
-
-const OrdersPage: React.FC = () => {
+export default function OrdersPage() {
   const { profile } = useAuth();
-  const { toast } = useToast();
-
   const userRole = profile?.role;
+  const isAdmin = userRole === 'admin';
   const visibleStatuses = useMemo(() => getVisibleStatuses(userRole), [userRole]);
 
+  // Data
   const {
     data: ordersData,
     isLoading,
     error,
     refetch,
-  } = useSupabaseQuery<OrderWithDetails[]>(listOrders, {
-    initialData: [],
-  });
+  } = useSupabaseQuery<OrderWithDetails[]>(listOrders, { initialData: [] });
 
-  const [boardColumns, setBoardColumns] = useState<Record<OrderStatus, OrderWithDetails[]>>(() =>
-    buildColumns(ordersData),
-  );
-  const boardColumnsRef = useRef(boardColumns);
-  useEffect(() => {
-    boardColumnsRef.current = boardColumns;
-  }, [boardColumns]);
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [view, setView] = useState<ViewType>('kanban');
+  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
-    setBoardColumns(buildColumns(ordersData));
-  }, [ordersData]);
-  const hasOrders = useMemo(
-    () => (Object.values(boardColumns) as OrderWithDetails[][]).some((column) => column.length > 0),
-    [boardColumns],
-  );
+    const timeout = window.setTimeout(() => setDebouncedSearch(searchInput), 350);
+    return () => window.clearTimeout(timeout);
+  }, [searchInput]);
 
-  const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null);
-  const [nextStatus, setNextStatus] = useState<OrderStatus | ''>('');
-  const [pendingOrders, setPendingOrders] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    if (searchParams.get('action') === 'new') {
+      setSelectedOrder(null);
+      setIsNewOrderOpen(true);
+      // Remove the param to avoid reopening on refresh
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.delete('action');
+        return next;
+      });
+    }
+  }, [searchParams, setSearchParams]);
 
-  const setOrderPending = (orderId: string, value: boolean) => {
-    setPendingOrders((prev) => {
-      const next = { ...prev };
-      if (value) {
-        next[orderId] = true;
-      } else {
-        delete next[orderId];
-      }
-      return next;
+  const filteredOrders = useMemo(() => {
+    if (!debouncedSearch) return ordersData;
+    const lower = debouncedSearch.toLowerCase();
+    return ordersData.filter((order) =>
+      (order.client?.name?.toLowerCase() ?? '').includes(lower) ||
+      order.id.toLowerCase().includes(lower)
+    );
+  }, [ordersData, debouncedSearch]);
+
+  const [boardColumns, setBoardColumns] = useState(() => buildColumns(filteredOrders));
+
+  useEffect(() => {
+    setBoardColumns(buildColumns(filteredOrders));
+  }, [filteredOrders]);
+
+  useEffect(() => {
+    setSelectedOrders((prev) => {
+      const visibleIds = new Set(filteredOrders.map((o) => o.id));
+      return new Set([...prev].filter((id) => visibleIds.has(id)));
     });
-  };
+  }, [filteredOrders]);
 
+  // DnD Sensors
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 200,
-        tolerance: 5,
-      },
-    }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   );
 
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
-  const activeOrder = useMemo(() => {
-    if (!activeOrderId) {
-      return null;
-    }
-    return findOrderLocation(boardColumns, activeOrderId)?.order ?? null;
-  }, [activeOrderId, boardColumns]);
+  const activeOrder = useMemo(() =>
+    activeOrderId ? findOrderLocation(boardColumns, activeOrderId)?.order : null
+    , [activeOrderId, boardColumns]);
 
-  const {
-    mutate: mutateStatus,
-    isMutating: isUpdatingStatus,
-    error: mutationError,
-    reset: resetMutation,
-  } = useSupabaseMutation(updateOrderStatus);
-
-  const handleSelectOrder = (order: OrderWithDetails) => {
-    setSelectedOrder(order);
-    setNextStatus('');
-    resetMutation();
-  };
-
-  const handleCopyDeliveryDetails = async (details?: string | null) => {
-    if (!details) {
-      toast({
-        status: 'info',
-        title: 'Sem endereço disponível',
-        description: 'Este pedido ainda não possui detalhes de entrega registrados.',
-      });
-      return;
-    }
-    try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(details);
-        toast({
-          status: 'success',
-          title: 'Endereço copiado',
-          description: 'Cole no app de entregas ou compartilhe com o seu time.',
-        });
-        return;
-      }
-      throw new Error('Clipboard indisponÃ­vel');
-    } catch {
-      toast({
-        status: 'info',
-        title: 'Detalhes da entrega',
-        description: details,
-      });
-    }
-  };
-
-  const handleModalChange = (open: boolean) => {
-    if (!open) {
-      setSelectedOrder(null);
-      setNextStatus('');
-      resetMutation();
-    }
-  };
-
-  const allowedTransitions = selectedOrder ? getAllowedTransitions(selectedOrder.status, userRole) : [];
+  // Mutations
+  const { mutate: mutateStatus } = useSupabaseMutation(updateOrderStatus);
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveOrderId(String(event.active.id));
@@ -378,516 +198,473 @@ const OrdersPage: React.FC = () => {
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveOrderId(null);
-    if (!over) {
-      return;
-    }
+    if (!over) return;
+
     const activeId = String(active.id);
     const overId = String(over.id);
-    const source = findOrderLocation(boardColumnsRef.current, activeId);
-    if (!source) {
-      return;
-    }
+
+    const source = findOrderLocation(boardColumns, activeId);
+    if (!source) return;
 
     let destinationStatus = source.status;
     let destinationIndex = source.index;
 
-    if (isStatusId(overId)) {
-      destinationStatus = overId;
-      destinationIndex = boardColumnsRef.current[destinationStatus]?.length ?? 0;
+    if (ALL_STATUSES.includes(overId as OrderStatus)) {
+      destinationStatus = overId as OrderStatus;
+      destinationIndex = boardColumns[destinationStatus]?.length ?? 0;
     } else {
-      const target = findOrderLocation(boardColumnsRef.current, overId);
+      const target = findOrderLocation(boardColumns, overId);
       if (target) {
         destinationStatus = target.status;
         destinationIndex = target.index;
       }
     }
 
-    if (source.status === destinationStatus && source.index === destinationIndex) {
-      return;
-    }
+    if (source.status === destinationStatus && source.index === destinationIndex) return;
 
-    if (destinationStatus === source.status) {
-      setBoardColumns((prev) => moveOrderToStatus(prev, activeId, destinationStatus, destinationIndex));
-      return;
-    }
-
-    const canMove =
-      userRole === 'admin' || getAllowedTransitions(source.status, userRole).includes(destinationStatus);
-
-    if (!canMove) {
-      toast({
-        status: 'error',
-        title: 'Transição não permitida',
-        description: 'Seu papel atual não pode mover o pedido para esse status.',
-      });
-      return;
-    }
-
-    resetMutation();
-    const previousState = cloneColumns(boardColumnsRef.current);
-    setBoardColumns((prev) => moveOrderToStatus(prev, activeId, destinationStatus, destinationIndex));
-    setOrderPending(activeId, true);
+    // Optimistic Update
+    const previousColumns = boardColumns;
+    setBoardColumns(prev => moveOrderToStatus(prev, activeId, destinationStatus, destinationIndex));
 
     const updated = await mutateStatus({ id: activeId, status: destinationStatus });
     if (!updated) {
-      setBoardColumns(previousState);
-      setOrderPending(activeId, false);
-      return;
+      setBoardColumns(previousColumns);
+      toast.error('Erro ao atualizar status');
+    } else {
+      toast.success(`Pedido movido para ${destinationStatus}`);
+      await refetch();
     }
-
-    toast({
-      status: 'success',
-      title: 'Pedido atualizado',
-      description: `Pedido ${activeId.slice(0, 8)} movido para ${getStatusMeta(destinationStatus).label}.`,
-    });
-    await refetch();
-    setOrderPending(activeId, false);
   };
 
-  const handleDragCancel = () => setActiveOrderId(null);
-
-  const handleUpdateStatus = async () => {
-    if (!selectedOrder || !nextStatus) {
-      return;
+  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+    const updated = await mutateStatus({ id: orderId, status: newStatus });
+    if (updated) {
+      toast.success(`Status atualizado para ${newStatus}`);
+      await refetch();
+    } else {
+      toast.error('Erro ao atualizar status');
     }
-    resetMutation();
-    const previousState = cloneColumns(boardColumnsRef.current);
-    setBoardColumns((prev) => moveOrderToStatus(prev, selectedOrder.id, nextStatus, 0));
-    setSelectedOrder((prev) => (prev ? { ...prev, status: nextStatus } : prev));
-    setOrderPending(selectedOrder.id, true);
-    const updated = await mutateStatus({ id: selectedOrder.id, status: nextStatus });
-    if (!updated) {
-      setBoardColumns(previousState);
-      setOrderPending(selectedOrder.id, false);
-      return;
-    }
-    toast({
-      status: 'success',
-      title: 'Status atualizado',
-      description: `Pedido ${selectedOrder.id.slice(0, 8)} movido para ${getStatusMeta(nextStatus).label}.`,
-    });
-    await refetch();
-    setOrderPending(selectedOrder.id, false);
-    setSelectedOrder(null);
-    setNextStatus('');
   };
+
+  const toggleSelectOrder = (id: string, checked: boolean) => {
+    setSelectedOrders((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const selectAllCurrent = (checked: boolean) => {
+    setSelectedOrders(checked ? new Set(filteredOrders.map((o) => o.id)) : new Set());
+  };
+
+  const clearSelection = () => setSelectedOrders(new Set());
+
+  const handleBulkStatusChange = async (status: OrderStatus) => {
+    if (!isAdmin || selectedOrders.size === 0) return;
+    setIsBulkProcessing(true);
+    try {
+      const ids = [...selectedOrders];
+      const results = await Promise.all(
+        ids.map(async (id) => {
+          const ok = await mutateStatus({ id, status });
+          return Boolean(ok);
+        }),
+      );
+      const successCount = results.filter(Boolean).length;
+      if (successCount) toast.success(`${successCount} pedido(s) atualizados para ${status}`);
+      if (successCount !== ids.length) toast.error('Alguns pedidos não foram atualizados.');
+      await refetch();
+      clearSelection();
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!isAdmin) {
+      console.warn('Tentativa de exclusão sem permissão de admin');
+      return;
+    }
+    if (!window.confirm('Tem certeza que deseja excluir este pedido?')) return;
+
+    console.log('Iniciando exclusão do pedido:', orderId);
+    try {
+      await deleteOrder(orderId);
+      toast.success('Pedido excluído com sucesso');
+      setIsDetailsOpen(false);
+      setSelectedOrder(null);
+      await refetch();
+    } catch (error) {
+      console.error('Erro ao excluir pedido:', error);
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error(`Erro ao excluir pedido: ${message}`);
+    }
+  };
+
+  const handleEditOrder = (order: OrderWithDetails) => {
+    setSelectedOrder(order);
+    setIsNewOrderOpen(true);
+    setIsDetailsOpen(false); // Close details when opening edit
+  };
+
+  // Calendar Events
+  const calendarEvents = useMemo(() => {
+    return filteredOrders.map(order => ({
+      id: order.id,
+      title: `${order.client?.name || 'Cliente'} (${order.items.length})`,
+      date: order.delivery_date ? new Date(order.delivery_date) : new Date(),
+      status: order.status
+    }));
+  }, [filteredOrders]);
+
+  const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  const openDetails = (order: OrderWithDetails) => {
+    setSelectedOrder(order);
+    setIsDetailsOpen(true);
+  };
+
+  const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
+
+  const allCurrentSelected =
+    filteredOrders.length > 0 && filteredOrders.every((o) => selectedOrders.has(o.id));
+  const someSelected = selectedOrders.size > 0;
+  const headerChecked = allCurrentSelected ? true : someSelected ? 'indeterminate' : false;
 
   return (
-    <div className="space-y-8 h-full flex flex-col">
-      <div className="space-y-2">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-4xl font-serif font-bold bg-gradient-to-r from-rose-600 to-orange-500 bg-clip-text text-transparent">
-              Pedidos
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              Acompanhe os pedidos reais em cada etapa do fluxo.
-            </p>
+    <div className="space-y-8 fade-in h-[calc(100vh-8rem)] flex flex-col">
+      <div className="flex-none flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Pedidos e Produção</h1>
+          <p className="text-sm sm:text-base text-slate-500 mt-1">Acompanhe o fluxo de produção da cozinha.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <Button
+            onClick={() => {
+              setSelectedOrder(null); // Clear selection for new order
+              setIsNewOrderOpen(true);
+            }}
+            className="hidden sm:flex bg-rose-500 hover:bg-rose-600 text-white w-full sm:w-auto"
+            disabled={userRole !== 'admin'}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Pedido
+          </Button>
+          <div className="relative w-full sm:w-auto flex-1 sm:flex-none">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Buscar pedido..."
+              className="pl-10 w-full sm:w-64"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
           </div>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => void refetch()} disabled={isLoading}>
-              {isLoading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-              <span className="ml-2">Atualizar</span>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+            <ViewSwitcher currentView={view} onViewChange={setView} availableViews={['kanban', 'list', 'calendar']} />
+            <Button variant="outline" onClick={() => void refetch()} disabled={isLoading} size="icon">
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground">
-          {profile
-            ? `Seu papel atual: ${profile.role}.`
-            : 'Carregando permissões do usuário...'}
-        </p>
       </div>
 
-      {error ? (
+      <OrderFormDialog
+        open={isNewOrderOpen}
+        onOpenChange={setIsNewOrderOpen}
+        onSuccess={() => void refetch()}
+        orderToEdit={selectedOrder} // Pass selected order for editing
+      />
+
+      {error && (
         <Alert variant="destructive">
-          <AlertTitle>Erro ao carregar pedidos</AlertTitle>
+          <AlertTitle>Erro</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-      ) : null}
-
-      {isLoading && !hasOrders ? (
-        <LoadingState className="flex-1" message="Carregando pedidos..." />
-      ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragCancel={handleDragCancel}
-          onDragEnd={(event) => {
-            void handleDragEnd(event);
-          }}
-        >
-          <div className="flex-1 flex gap-6 overflow-x-auto pb-6">
-            {visibleStatuses.map((status) => {
-              const meta = getStatusMeta(status);
-              const columnOrders = boardColumns[status] ?? [];
-              return (
-                <KanbanColumn
-                  key={status}
-                  status={status}
-                  meta={meta}
-                  count={columnOrders.length}
-                >
-                  {isLoading && !columnOrders.length ? (
-                    <div className="space-y-3">
-                      {[0, 1].map((index) => (
-                        <div key={index} className="h-32 rounded-xl bg-muted animate-pulse" />
-                      ))}
-                    </div>
-                  ) : columnOrders.length ? (
-                    <SortableContext
-                      items={columnOrders.map((order) => order.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {columnOrders.map((order) => (
-                        <KanbanOrderCard
-                          key={order.id}
-                          order={order}
-                          meta={meta}
-                          pending={Boolean(pendingOrders[order.id])}
-                          disabled={Boolean(pendingOrders[order.id]) || isUpdatingStatus}
-                          onSelect={handleSelectOrder}
-                          onCopyDeliveryDetails={handleCopyDeliveryDetails}
-                        />
-                      ))}
-                    </SortableContext>
-                  ) : (
-                    <div className="px-4 py-10 text-center text-sm text-muted-foreground border border-dashed rounded-xl">
-                      Nenhum pedido neste status.
-                    </div>
-                  )}
-                </KanbanColumn>
-              );
-            })}
-          </div>
-          <DragOverlay>
-            {activeOrder ? (
-              <OrderPreviewCard order={activeOrder} meta={getStatusMeta(activeOrder.status)} />
-            ) : null}
-          </DragOverlay>
-        </DndContext>
       )}
 
-      <Dialog open={Boolean(selectedOrder)} onOpenChange={handleModalChange}>
-        <DialogContent className="max-w-2xl bg-card">
-          {selectedOrder ? (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-lg font-semibold">
-                      Pedido #{selectedOrder.id.slice(0, 8)}
-                    </span>
-                    <Badge className={`${getStatusMeta(selectedOrder.status).badgeClass} px-3 py-1`}>
-                      {getStatusMeta(selectedOrder.status).label}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Entrega em {formatDeliveryDate(selectedOrder.delivery_date)} â€¢{' '}
-                    {currencyFormatter.format(selectedOrder.total_amount ?? 0)}
-                  </p>
-                </DialogTitle>
-                <DialogDescription>
-                  Detalhes completos do pedido selecionado, incluindo itens e informacões do cliente.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-6">
-                <section className="space-y-2">
-                  <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <UserRound className="size-4 text-muted-foreground" />
-                    Cliente
-                  </h4>
-                  <div className="rounded-xl border bg-muted/30 p-3 space-y-1 text-sm">
-                    <p className="font-medium text-foreground">
-                      {selectedOrder.client?.name ?? 'Cliente sem nome'}
-                    </p>
-                    <p className="flex items-center gap-2 text-muted-foreground">
-                      <Phone className="size-3.5" />
-                      {selectedOrder.client?.phone ?? 'Sem telefone cadastrado'}
-                    </p>
-                    <p className="flex items-center gap-2 text-muted-foreground">
-                      <Mail className="size-3.5" />
-                      {selectedOrder.client?.email ?? 'Sem email cadastrado'}
-                    </p>
-                  </div>
-                </section>
-
-                <section className="space-y-2">
-                  <h4 className="text-sm font-semibold text-foreground">Itens do pedido</h4>
-                  {selectedOrder.items.length ? (
-                    <div className="rounded-xl border divide-y">
-                      {selectedOrder.items.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between p-3 text-sm">
-                          <div>
-                            <p className="font-medium">{item.product_name_copy}</p>
-                            <p className="text-muted-foreground">
-                              {item.quantity}x {currencyFormatter.format(item.price_at_creation)}
-                            </p>
-                          </div>
-                          <span className="font-semibold text-rose-600">
-                            {currencyFormatter.format(getLineTotal(item))}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
-                      Nenhum item vinculado. Verifique o orcamento de origem.
-                    </div>
-                  )}
-                </section>
-
-                <section className="space-y-2">
-                  <h4 className="text-sm font-semibold text-foreground">Detalhes de entrega</h4>
-                  <div className="rounded-xl border bg-muted/30 p-3 text-sm text-muted-foreground">
-                    {selectedOrder.delivery_details?.trim()
-                      ? selectedOrder.delivery_details
-                      : 'Sem observações registradas.'}
-                  </div>
-                </section>
-
-                <section className="space-y-3">
-                  <h4 className="text-sm font-semibold text-foreground">Status e acoes</h4>
-                  {allowedTransitions.length ? (
-                    <select
-                      value={nextStatus}
-                      onChange={(event) => setNextStatus(event.target.value as OrderStatus)}
-                      className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-rose-500 focus-visible:ring-2 focus-visible:ring-rose-500/30"
-                    >
-                      <option value="">Selecione o novo status</option>
-                      {allowedTransitions.map((status) => (
-                        <option key={status} value={status}>
-                          {getStatusMeta(status).label}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      {profile
-                        ? 'Seu papel não permite mover este pedido a partir do status atual.'
-                        : 'Permissões ainda não carregadas.'}
-                    </p>
-                  )}
-
-                  {mutationError ? (
-                    <Alert variant="destructive">
-                      <AlertTitle>Supabase retornou um erro</AlertTitle>
-                      <AlertDescription>{mutationError}</AlertDescription>
-                    </Alert>
-                  ) : null}
-                </section>
+      <div className="flex-1 min-h-0 relative">
+        {view === 'kanban' && (
+          <div className="overflow-x-auto overflow-y-hidden h-full pb-4">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="flex gap-6 h-full min-w-[1000px]">
+                {visibleStatuses.map((status) => (
+                  <KanbanColumn
+                    key={status}
+                    status={status}
+                    orders={(boardColumns[status] || []) as any}
+                    isLoading={isLoading}
+                    onOrderClick={openDetails}
+                  />
+                ))}
               </div>
+              <DragOverlay>
+                {activeOrder ? <OrderCard order={activeOrder} isOverlay /> : null}
+              </DragOverlay>
+            </DndContext>
+          </div>
+        )}
 
-              <DialogFooter className="pt-6">
-                <Button variant="outline" onClick={() => handleModalChange(false)}>
-                  Fechar
-                </Button>
-                <Button
-                  onClick={() => void handleUpdateStatus()}
-                  disabled={!nextStatus || isUpdatingStatus || !allowedTransitions.length}
-                >
-                  {isUpdatingStatus ? <Loader2 className="size-4 animate-spin" /> : null}
-                  <span className="ml-2">Atualizar status</span>
-                </Button>
-              </DialogFooter>
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+        {view === 'list' && (
+          <Card className="h-full border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <CardContent className="p-0 flex-1 overflow-auto">
+              {someSelected && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-rose-100 bg-rose-50/70">
+                  <div className="text-sm font-medium text-slate-800">
+                    {selectedOrders.size} selecionado(s)
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => { e.stopPropagation(); void handleBulkStatusChange('Em Produção'); }}
+                      disabled={isBulkProcessing || !isAdmin}
+                    >
+                      <Clock className="mr-2 h-4 w-4" />
+                      Em produção
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => { e.stopPropagation(); void handleBulkStatusChange('Pronto para Entrega'); }}
+                      disabled={isBulkProcessing || !isAdmin}
+                    >
+                      <Truck className="mr-2 h-4 w-4" />
+                      Pronto para entrega
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => { e.stopPropagation(); void handleBulkStatusChange('Entregue'); }}
+                      disabled={isBulkProcessing || !isAdmin}
+                    >
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Marcar como entregue
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={(e) => { e.stopPropagation(); void handleBulkStatusChange('Cancelado'); }}
+                      disabled={isBulkProcessing || !isAdmin}
+                    >
+                      <AlertCircle className="mr-2 h-4 w-4" />
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <div className="min-w-[800px]">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
+                    <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={headerChecked}
+                          onCheckedChange={(checked) => selectAllCurrent(Boolean(checked))}
+                          aria-label="Selecionar todos"
+                        />
+                      </TableHead>
+                      <TableHead className="w-[100px]">ID</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Entrega</TableHead>
+                      <TableHead>Itens</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredOrders.map((order) => (
+                      <TableRow
+                        key={order.id}
+                        className="hover:bg-slate-50/50 cursor-pointer"
+                        onClick={(e) => {
+                          if ((e.target as HTMLElement).closest('input')) return;
+                          openDetails(order);
+                        }}
+                      >
+                        <TableCell className="w-12" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedOrders.has(order.id)}
+                            onCheckedChange={(checked) => toggleSelectOrder(order.id, Boolean(checked))}
+                            aria-label={`Selecionar pedido ${order.id}`}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium text-slate-900">#{order.id.slice(0, 8)}</TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{order.client?.name || 'Cliente sem nome'}</div>
+                            <div className="text-xs text-slate-500">{order.delivery_details ? 'Com detalhes' : 'Sem detalhes'}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{order.delivery_date ? new Date(order.delivery_date).toLocaleDateString('pt-BR') : '—'}</TableCell>
+                        <TableCell>
+                          <div className="max-w-[300px] truncate text-slate-600">
+                            {order.items.map(i => i.product_name_copy).join(', ')}
+                          </div>
+                        </TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <StatusMenu
+                            status={order.status}
+                            options={ORDER_STATUS_OPTIONS}
+                            onChange={(status) => void handleStatusChange(order.id, status as OrderStatus)}
+                            disabled={!isAdmin}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); openDetails(order); }}>
+                            <ArrowRight className="h-4 w-4 text-slate-400" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {view === 'calendar' && (
+          <div className="h-full overflow-auto">
+            <CalendarView
+              events={calendarEvents}
+              onEventClick={(evt) => {
+                const order = filteredOrders.find(o => o.id === evt.id);
+                if (order) openDetails(order);
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Details Dialog */}
+      <AppDialog
+        open={isDetailsOpen}
+        onOpenChange={setIsDetailsOpen}
+        size="xl"
+        className="p-0 bg-transparent border-0 shadow-none max-w-5xl"
+        title=""
+        description=""
+        contentClassName="p-0 bg-transparent border-0 shadow-none"
+      >
+        {selectedOrder && (
+          <OrderPreview
+            order={selectedOrder}
+            onDelete={isAdmin ? () => handleDeleteOrder(selectedOrder.id) : undefined}
+            onEdit={isAdmin ? () => handleEditOrder(selectedOrder) : undefined}
+            onPrint={() => window.print()}
+          />
+        )}
+      </AppDialog>
     </div>
   );
-};
+}
 
-export default OrdersPage;
+// Subcomponents
 
 interface KanbanColumnProps {
   status: OrderStatus;
-  meta: typeof DEFAULT_STATUS_META;
-  count: number;
-  children: React.ReactNode;
+  orders: OrderWithDetails[];
+  isLoading: boolean;
+  onOrderClick: (o: OrderWithDetails) => void;
 }
 
-const KanbanColumn: React.FC<KanbanColumnProps> = ({ status, meta, count, children }) => {
-  const { setNodeRef, isOver } = useDroppable({
-    id: status,
-  });
+const KanbanColumn: React.FC<KanbanColumnProps> = ({ status, orders, isLoading, onOrderClick }) => {
+  const { setNodeRef } = useDroppable({ id: status });
+  const config = COLUMNS_CONFIG[status] || COLUMNS_CONFIG['Aprovado'];
+
+  const Icon = config.icon;
+
   return (
-    <div className="flex-shrink-0 w-80">
-      <div
-        ref={setNodeRef}
-        className={`flex h-full flex-col rounded-3xl border bg-card/85 p-4 shadow-sm transition-all ${
-          isOver ? 'border-rose-300 shadow-rose-100' : 'border-border/70'
-        }`}
-      >
-        <div className="flex items-center justify-between">
-          <Badge className={`${meta.badgeClass} px-4 py-2 text-sm font-semibold shadow`}>
-            {meta.label}
-          </Badge>
-          <span className="text-sm font-semibold text-muted-foreground bg-muted px-3 py-1 rounded-full">
-            {count}
-          </span>
+    <div className="flex-1 flex flex-col min-w-[280px] h-full bg-slate-100/50 rounded-xl border border-slate-200/60 p-3">
+      <div className={`flex items-center justify-between p-3 mb-3 rounded-lg border ${config.color} bg-white shadow-sm`}>
+        <div className="flex items-center font-semibold">
+          <Icon className="mr-2 h-4 w-4" />
+          {config.title}
         </div>
-        <div className="mt-4 flex-1 space-y-3">{children}</div>
+        <Badge variant="secondary" className="bg-white/50 text-current border-0">
+          {orders.length}
+        </Badge>
       </div>
+
+      <ScrollArea className="flex-1 pr-3">
+        <div ref={setNodeRef} className="space-y-3 min-h-[100px]">
+          <SortableContext items={orders.map(o => o.id)} strategy={verticalListSortingStrategy}>
+            {orders.map(order => (
+              <OrderCard key={order.id} order={order} onClick={() => onOrderClick(order)} />
+            ))}
+          </SortableContext>
+          {orders.length === 0 && !isLoading && (
+            <div className="text-center py-8 text-sm text-slate-400 border-2 border-dashed border-slate-200 rounded-lg">
+              Vazio
+            </div>
+          )}
+        </div>
+      </ScrollArea>
     </div>
   );
 };
 
-interface KanbanOrderCardProps {
+interface OrderCardProps {
   order: OrderWithDetails;
-  meta: typeof DEFAULT_STATUS_META;
-  pending: boolean;
-  disabled?: boolean;
-  onSelect: (order: OrderWithDetails) => void;
-  onCopyDeliveryDetails: (details?: string | null) => void;
+  isOverlay?: boolean;
+  onClick?: () => void;
 }
 
-const KanbanOrderCard: React.FC<KanbanOrderCardProps> = ({
-  order,
-  meta,
-  pending,
-  disabled,
-  onSelect,
-  onCopyDeliveryDetails,
-}) => {
+const OrderCard: React.FC<OrderCardProps> = ({ order, isOverlay, onClick }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: order.id,
-    disabled,
   });
-  const style: React.CSSProperties = {
+
+  const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-  };
-
-  const phoneHref = order.client?.phone ? `tel:${sanitizePhone(order.client.phone)}` : null;
-  const whatsappHref = getWhatsAppLink(order.client?.phone, order.client?.name ?? null);
-
-  const stopPropagation = (event: React.SyntheticEvent) => {
-    event.stopPropagation();
+    opacity: isDragging ? 0.5 : 1,
   };
 
   return (
-    <motion.div
+    <div
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
-      layout
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.18, ease: 'easeOut' }}
-      className="cursor-grab active:cursor-grabbing"
+      className={`bg-white p-4 rounded-lg border border-slate-200 shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing transition-all group relative ${isOverlay ? 'shadow-xl rotate-2 scale-105' : ''}`}
+      onClick={onClick}
     >
-      <Card
-        onClick={() => onSelect(order)}
-        className={`border-0 shadow-md transition-all duration-300 ${meta.cardBg} ${
-          isDragging ? 'ring-2 ring-rose-400' : 'hover:shadow-xl hover:scale-[1.01]'
-        }`}
-      >
-        <CardContent className="p-5 space-y-4 group">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase text-muted-foreground tracking-wide">Cliente</p>
-              <p className="font-semibold text-lg text-foreground">{order.client?.name ?? 'Cliente'}</p>
-              <p className="text-xs text-muted-foreground">{order.client?.phone ?? 'Sem telefone'}</p>
-            </div>
-            <div className="text-right">
-              <Badge className="border border-rose-100 bg-card text-rose-600">
-                {currencyFormatter.format(order.total_amount ?? 0)}
-              </Badge>
-              {pending ? <Loader2 className="mt-2 size-4 animate-spin text-rose-500" /> : null}
-            </div>
+      <div className="flex justify-between items-start mb-2">
+        <Badge variant="outline" className="text-xs font-normal text-slate-500 border-slate-200">
+          #{order.id.slice(0, 8)}
+        </Badge>
+        <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-2 opacity-0 group-hover:opacity-100">
+          <MoreVertical className="h-3 w-3" />
+        </Button>
+      </div>
+
+      <h4 className="font-semibold text-slate-900 mb-1">{order.client?.name || 'Cliente sem nome'}</h4>
+      <div className="flex items-center text-xs text-slate-500 mb-3">
+        <Clock className="h-3 w-3 mr-1" />
+        {order.delivery_date ? new Date(order.delivery_date).toLocaleDateString('pt-BR') : 'Sem data'}
+      </div>
+
+      <div className="space-y-1">
+        {order.items.slice(0, 2).map((item, idx) => (
+          <div key={idx} className="text-sm text-slate-600 bg-slate-50 px-2 py-1 rounded">
+            {item.quantity}x {item.product_name_copy}
           </div>
-          <p className="text-sm text-muted-foreground leading-relaxed">{getItemsPreview(order.items)}</p>
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground border-t pt-3">
-            <span className="flex items-center gap-2">
-              <Calendar className="size-3.5" />
-              {formatDeliveryDate(order.delivery_date)}
-            </span>
-            <span className="font-mono text-muted-foreground/80">#{order.id.slice(0, 8)}</span>
+        ))}
+        {order.items.length > 2 && (
+          <div className="text-xs text-slate-400 pl-1">
+            +{order.items.length - 2} outros itens
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground transition-opacity md:opacity-0 md:group-hover:opacity-100">
-            {phoneHref ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-9 rounded-full border border-rose-100 bg-card/80"
-                asChild
-              >
-                <a href={phoneHref} onPointerDown={stopPropagation} onClick={stopPropagation} aria-label="Ligar para o cliente">
-                  <Phone className="size-4 text-rose-500" />
-                </a>
-              </Button>
-            ) : null}
-            {whatsappHref ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-9 rounded-full border border-emerald-100 bg-card/80"
-                asChild
-              >
-                <a
-                  href={whatsappHref}
-                  target="_blank"
-                  rel="noreferrer"
-                  onPointerDown={stopPropagation}
-                  onClick={stopPropagation}
-                  aria-label="Enviar WhatsApp"
-                >
-                  <MessageCircle className="size-4 text-emerald-600" />
-                </a>
-              </Button>
-            ) : null}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-9 rounded-full border border-slate-200 bg-card/80"
-              onPointerDown={stopPropagation}
-              onClick={(event) => {
-                stopPropagation(event);
-                onCopyDeliveryDetails(order.delivery_details);
-              }}
-              aria-label="Copiar endereço"
-            >
-              <MapPin className="size-4 text-slate-700" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+        )}
+      </div>
+    </div>
   );
 };
-
-interface OrderPreviewCardProps {
-  order: OrderWithDetails;
-  meta: typeof DEFAULT_STATUS_META;
-}
-
-const OrderPreviewCard: React.FC<OrderPreviewCardProps> = ({ order, meta }) => (
-  <Card className={`w-72 border-0 shadow-xl ${meta.cardBg}`}>
-    <CardContent className="p-5 space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase text-muted-foreground tracking-wide">Cliente</p>
-          <p className="font-semibold text-lg text-foreground">{order.client?.name ?? 'Cliente'}</p>
-        </div>
-        <Badge className="border border-rose-100 bg-card text-rose-600">
-          {currencyFormatter.format(order.total_amount ?? 0)}
-        </Badge>
-      </div>
-      <p className="text-sm text-muted-foreground leading-relaxed">{getItemsPreview(order.items)}</p>
-      <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-3">
-        <span className="flex items-center gap-2">
-          <Calendar className="size-3.5" />
-          {formatDeliveryDate(order.delivery_date)}
-        </span>
-        <span className="font-mono text-muted-foreground/80">#{order.id.slice(0, 8)}</span>
-      </div>
-    </CardContent>
-  </Card>
-);
-
-
-

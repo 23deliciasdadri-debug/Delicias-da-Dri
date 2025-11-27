@@ -1,4 +1,4 @@
-﻿import type { Client, Quote, QuoteItem, QuoteStatus } from '../types';
+import type { Client, Order, OrderStatus, Quote, QuoteItem, QuoteStatus } from '../types';
 import { supabase } from '../lib/supabaseClient';
 
 export const QUOTES_PAGE_SIZE = 10;
@@ -115,7 +115,7 @@ const normalizeDateString = (value?: string | null) => {
   return DATE_REGEX.test(value) ? value : null;
 };
 
-const normalizeQuoteRow = (row: Record<string, unknown>): Quote => ({
+const normalizeQuoteRow = (row: any): Quote => ({
   id: row.id as string,
   client_id: row.client_id as string,
   status: row.status as QuoteStatus,
@@ -131,13 +131,24 @@ const normalizeQuoteRow = (row: Record<string, unknown>): Quote => ({
   public_link_last_viewed_at: row.public_link_last_viewed_at ?? null,
 });
 
-const normalizeQuoteItemRow = (row: Record<string, unknown>): QuoteItem => ({
+const normalizeQuoteItemRow = (row: any): QuoteItem => ({
   id: Number(row.id ?? row.item_id ?? 0),
   quote_id: row.quote_id as string,
-  product_id: row.product_id ?? row.item_product_id ?? null,
-  product_name_copy: row.product_name_copy ?? row.item_product_name ?? '',
+  product_id: (row.product_id ?? row.item_product_id ?? null) as string | null,
+  product_name_copy: (row.product_name_copy ?? row.item_product_name ?? '') as string,
   quantity: Number(row.quantity ?? row.item_quantity ?? 0),
   price_at_creation: Number(row.price_at_creation ?? row.item_price ?? 0),
+});
+
+const normalizeOrderRow = (row: any): Order => ({
+  id: row.id as string,
+  client_id: row.client_id as string,
+  quote_id: row.quote_id ?? null,
+  delivery_date: row.delivery_date ?? '',
+  status: row.status as OrderStatus,
+  total_amount: Number(row.total_amount ?? 0),
+  delivery_details: row.delivery_details ?? null,
+  created_at: row.created_at ?? undefined,
 });
 
 const buildItemsPayload = (quoteId: string, items: QuoteItemDraft[]) =>
@@ -358,16 +369,59 @@ export async function fetchQuoteDetails(id: string): Promise<QuoteDetails> {
     throw new Error(error?.message ?? 'orçamento não encontrado.');
   }
 
-  const parsed = data as Quote & {
-    client: Client | null;
-    items: QuoteItem[];
-  };
+  const parsed = data as any;
 
   return {
     ...normalizeQuoteRow(parsed),
     client: parsed.client ?? null,
     items: (parsed.items ?? []).map((item) => normalizeQuoteItemRow(item)),
   };
+}
+
+export async function createOrderFromQuote(quoteId: string): Promise<Order> {
+  if (!quoteId) {
+    throw new Error('ID do orcamento e obrigatorio para gerar o pedido.');
+  }
+
+  const { data: existingOrders, error: existingError } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('quote_id', quoteId)
+    .limit(1);
+
+  if (existingError) {
+    throw new Error(`Erro ao verificar pedidos existentes: ${existingError.message}`);
+  }
+
+  if (existingOrders && existingOrders.length > 0) {
+    return normalizeOrderRow(existingOrders[0]);
+  }
+
+  const quote = await fetchQuoteDetails(quoteId);
+  if (!quote.client_id) {
+    throw new Error('Nao foi possivel localizar o cliente para gerar o pedido.');
+  }
+
+  const deliveryDate = quote.event_date || new Date().toISOString().split('T')[0];
+
+  const { data: newOrder, error: orderError } = await supabase
+    .from('orders')
+    .insert({
+      client_id: quote.client_id,
+      quote_id: quote.id,
+      status: 'Aprovado',
+      total_amount: quote.total_amount,
+      delivery_date: deliveryDate,
+      delivery_details: quote.notes ?? null,
+    })
+    .select('*')
+    .single();
+
+  if (orderError || !newOrder) {
+    throw new Error(orderError?.message ?? 'Erro ao criar pedido a partir do orcamento.');
+  }
+
+  return normalizeOrderRow(newOrder);
 }
 
 export async function createQuoteWithItems(quote: QuoteInsertInput, items: QuoteItemDraft[]) {
@@ -384,7 +438,7 @@ export async function createQuoteWithItems(quote: QuoteInsertInput, items: Quote
   if (error || !data) {
     throw new Error(error?.message ?? 'Erro ao criar orçamento.');
   }
-  const quoteId = (data as { id: string }).id;
+  const quoteId = (data as any).id;
   const itemsPayload = buildItemsPayload(quoteId, items);
 
   try {
@@ -478,7 +532,7 @@ export async function regenerateQuotePublicLink(
   return {
     quoteId,
     token,
-    expiresAt: data.public_link_token_expires_at ?? null,
+    expiresAt: (data as any).public_link_token_expires_at ?? null,
     url: buildQuotePublicUrl(token, baseUrl),
   };
 }
@@ -543,29 +597,78 @@ export async function getQuotePublicPreview(token: string): Promise<QuotePublicP
 
 export async function approveQuoteViaToken(token: string): Promise<Quote> {
   if (!token) {
-    throw new Error('Token inválido para aprovação.');
+    throw new Error('Token invalido para aprovacao.');
   }
 
   const { data, error } = await supabase.rpc('approve_quote_via_token', { input_token: token });
 
   if (error || !data) {
-    throw new Error(error?.message ?? 'Não foi possivel aprovar este orçamento.');
+    throw new Error(error?.message ?? 'Nao foi possivel aprovar este orcamento.');
   }
 
-  return normalizeQuoteRow(data);
+  const normalized = normalizeQuoteRow(data);
+
+  if (normalized.status === 'Aprovado') {
+    try {
+      await createOrderFromQuote(normalized.id);
+    } catch (orderError) {
+      console.error('Erro ao criar pedido via aprovacao publica:', orderError);
+      throw orderError instanceof Error
+        ? orderError
+        : new Error('Pedido nao gerado apos aprovar o orcamento.');
+    }
+  }
+
+  return normalized;
 }
 
 export async function updateQuoteStatus(id: string, status: QuoteStatus) {
+  const updatePayload = {
+    status,
+    updated_at: new Date().toISOString(),
+    approved_at: status === 'Aprovado' ? new Date().toISOString() : null,
+  };
+
   const { data, error } = await supabase
     .from('quotes')
-    .update({ status, updated_at: new Date().toISOString() })
+    .update(updatePayload)
     .eq('id', id)
     .select('*')
     .single();
   if (error || !data) {
     throw new Error(error?.message ?? 'Erro ao atualizar status.');
   }
-  return normalizeQuoteRow(data);
+
+  const normalized = normalizeQuoteRow(data);
+
+  if (status === 'Aprovado') {
+    try {
+      await createOrderFromQuote(id);
+    } catch (orderError) {
+      console.error('Falha ao criar pedido a partir de orcamento aprovado:', orderError);
+      throw orderError instanceof Error
+        ? orderError
+        : new Error('Erro ao criar pedido apos aprovar o orcamento.');
+    }
+  } else {
+    // If status is NOT Approved, delete any existing order linked to this quote
+    try {
+      const { error: deleteError } = await supabase
+        .from('orders')
+        .delete()
+        .eq('quote_id', id);
+
+      if (deleteError) {
+        console.error('Erro ao excluir pedido vinculado ao orçamento:', deleteError);
+      } else {
+        console.log('Pedido vinculado excluído com sucesso (se existia).');
+      }
+    } catch (err) {
+      console.error('Erro inesperado ao excluir pedido vinculado:', err);
+    }
+  }
+
+  return normalized;
 }
 
 export async function deleteQuoteWithItems(id: string): Promise<{ success: true }> {

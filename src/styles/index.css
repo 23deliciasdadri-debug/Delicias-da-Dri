@@ -1,74 +1,164 @@
 @tailwind base;
+/* Importa os estilos base do Tailwind (reset, normalização) */
 @tailwind components;
+/* Importa os componentes do Tailwind e plugins */
 @tailwind utilities;
+/* Importa as classes utilitárias (p-4, flex, text-center, etc) */
 
 @layer base {
+
+  /* :root define as variáveis CSS globais para o tema CLARO (Light Mode) */
   :root {
     color-scheme: light;
+    /* Informa ao navegador que este é um esquema claro */
+
+    /* Cores de Fundo e Texto Principais */
     --background: oklch(0.982 0.01 24);
+    /* Cor de fundo da página (quase branco) */
     --foreground: oklch(0.21 0.032 18);
-    --card: oklch(0.964 0.03 32);
+    /* Cor do texto principal (quase preto) */
+
+    /* Cores de Cartões (Cards) */
+    --card: oklch(1 0 0);
+    /* Fundo dos cartões (branco puro) */
     --card-foreground: oklch(0.225 0.045 18);
-    --popover: oklch(0.97 0.028 28);
+    /* Texto dentro dos cartões */
+
+    /* Cores de Popovers (Menus flutuantes, tooltips) */
+    --popover: oklch(1 0 0);
+    /* Fundo do popover */
     --popover-foreground: oklch(0.22 0.04 15);
-    --primary: oklch(0.63 0.26 25);
-    --primary-foreground: oklch(0.99 0.009 25);
+    /* Texto do popover */
+
+    /* Cor Primária (Botões principais, destaques) - Atualmente um tom de Indigo/Azul */
+    --primary: oklch(0.488 0.243 264.376);
+    /* Fundo do botão primário */
+    --primary-foreground: oklch(0.985 0 0);
+    /* Texto do botão primário (branco) */
+
+    /* Cor Secundária (Botões secundários, fundos sutis) */
     --secondary: oklch(0.962 0.02 35);
+    /* Fundo secundário (cinza claro) */
     --secondary-foreground: oklch(0.355 0.02 12);
+    /* Texto secundário */
+
+    /* Cores "Muted" (Desabilitado, texto de apoio, discretos) */
     --muted: oklch(0.94 0.02 48);
+    /* Fundo discreto */
     --muted-foreground: oklch(0.48 0.025 18);
+    /* Texto discreto (cinza médio) */
+
+    /* Cor de Acento (Elementos de destaque menor) */
     --accent: oklch(0.94 0.03 70);
+    /* Fundo de acento */
     --accent-foreground: oklch(0.335 0.018 20);
+    /* Texto de acento */
+
+    /* Cor Destrutiva (Erros, deletar, perigo) */
     --destructive: oklch(0.6 0.23 27);
+    /* Vermelho para erros */
     --destructive-foreground: oklch(0.985 0.008 20);
+    /* Texto sobre o vermelho */
+
+    /* Bordas e Inputs */
     --border: oklch(0.91 0.01 32);
+    /* Cor das bordas padrão */
     --input: oklch(0.92 0.01 32);
-    --ring: oklch(0.74 0.04 25);
-    --chart-1: oklch(0.65 0.24 25);
+    /* Cor da borda de inputs de texto */
+    --ring: oklch(0.488 0.243 264.376);
+    /* Cor do anel de foco (quando clica no input) */
+
+    /* Cores para Gráficos (Charts) */
+    --chart-1: oklch(0.488 0.243 264.376);
+    /* Cor 1 do gráfico */
     --chart-2: oklch(0.61 0.17 140);
+    /* Cor 2 do gráfico */
     --chart-3: oklch(0.62 0.19 305);
+    /* Cor 3 do gráfico */
     --chart-4: oklch(0.77 0.21 80);
+    /* Cor 4 do gráfico */
     --chart-5: oklch(0.75 0.19 50);
+    /* Cor 5 do gráfico */
+
+    /* Arredondamento Global */
     --radius: 0.875rem;
+    /* Raio da borda padrão (cantos arredondados) ~14px */
+
+    /* Variáveis Específicas da Sidebar (Barra Lateral) */
     --sidebar: oklch(0.99 0.008 28);
+    /* Fundo da sidebar */
     --sidebar-foreground: oklch(0.205 0.02 15);
-    --sidebar-primary: oklch(0.63 0.26 25);
-    --sidebar-primary-foreground: oklch(0.99 0.009 20);
+    /* Texto da sidebar */
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    /* Cor primária na sidebar */
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    /* Texto primário na sidebar */
     --sidebar-accent: oklch(0.95 0.02 60);
+    /* Cor de destaque na sidebar (hover) */
     --sidebar-accent-foreground: oklch(0.32 0.015 15);
+    /* Texto de destaque na sidebar */
     --sidebar-border: oklch(0.9 0.01 32);
-    --sidebar-ring: oklch(0.7 0.04 25);
+    /* Borda da sidebar */
+    --sidebar-ring: oklch(0.488 0.243 264.376);
+    /* Anel de foco na sidebar */
+
+    /* Cores Semânticas (Sucesso, Aviso, Info) */
     --success: oklch(0.75 0.18 150);
+    /* Verde sucesso */
     --warning: oklch(0.79 0.12 70);
+    /* Laranja aviso */
     --info: oklch(0.7 0.12 230);
+    /* Azul informação */
   }
 
+  /* .dark define as variáveis para o tema ESCURO (Dark Mode) */
   .dark {
     color-scheme: dark;
+    /* Informa ao navegador que este é um esquema escuro */
+
+    /* Cores de Fundo e Texto (Invertidas para dark mode) */
     --background: oklch(0.16 0.015 10);
+    /* Fundo escuro */
     --foreground: oklch(0.98 0.006 22);
+    /* Texto claro */
+
     --card: oklch(0.26 0.02 12);
+    /* Fundo do cartão escuro */
     --card-foreground: oklch(0.97 0.01 22);
+    /* Texto do cartão claro */
+
     --popover: oklch(0.24 0.02 10);
     --popover-foreground: oklch(0.97 0.01 22);
+
     --primary: oklch(0.75 0.27 25);
+    /* Primária ajustada para contraste no escuro */
     --primary-foreground: oklch(0.18 0.03 8);
+
     --secondary: oklch(0.3 0.012 10);
     --secondary-foreground: oklch(0.92 0.01 20);
+
     --muted: oklch(0.34 0.01 12);
     --muted-foreground: oklch(0.78 0.018 20);
+
     --accent: oklch(0.38 0.018 15);
     --accent-foreground: oklch(0.96 0.01 20);
+
     --destructive: oklch(0.52 0.18 27);
     --destructive-foreground: oklch(0.985 0.008 20);
+
     --border: oklch(0.34 0.01 10);
+    /* Bordas mais escuras */
     --input: oklch(0.34 0.01 10);
     --ring: oklch(0.58 0.04 25);
+
+    /* Gráficos ajustados para fundo escuro */
     --chart-1: oklch(0.72 0.24 30);
     --chart-2: oklch(0.66 0.2 170);
     --chart-3: oklch(0.7 0.24 310);
     --chart-4: oklch(0.74 0.2 80);
     --chart-5: oklch(0.68 0.22 40);
+
+    /* Sidebar Dark Mode */
     --sidebar: oklch(0.23 0.015 10);
     --sidebar-foreground: oklch(0.98 0.01 20);
     --sidebar-primary: oklch(0.68 0.25 25);
@@ -77,21 +167,27 @@
     --sidebar-accent-foreground: oklch(0.96 0.01 20);
     --sidebar-border: oklch(0.34 0.01 10);
     --sidebar-ring: oklch(0.6 0.04 25);
+
     --success: oklch(0.66 0.17 150);
     --warning: oklch(0.69 0.13 70);
     --info: oklch(0.68 0.12 230);
   }
 
+  /* Aplica a cor da borda padrão a todos os elementos */
   * {
     @apply border-border;
   }
 
+  /* Estilos globais do corpo da página */
   body {
     @apply bg-background text-foreground antialiased;
+    /* Fundo, texto e suavização de fonte */
     font-family: 'Inter', sans-serif;
+    /* Fonte padrão */
   }
 }
 
+/* Transições suaves para elementos interativos */
 button,
 a,
 [role='button'],
@@ -101,8 +197,10 @@ textarea {
   transition-property: color, background-color, border-color, fill, stroke, box-shadow;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 200ms;
+  /* Duração de 0.2s */
 }
 
+/* Classes utilitárias personalizadas para Gradientes */
 .gradient-primary {
   background: linear-gradient(135deg, rgb(244 63 94) 0%, rgb(236 72 153) 50%, rgb(251 146 60) 100%);
 }
@@ -127,20 +225,89 @@ textarea {
   background: linear-gradient(135deg, rgb(245 158 11) 0%, rgb(234 88 12) 100%);
 }
 
+/* Efeito de Vidro (Glassmorphism) */
 .glass-effect {
   backdrop-filter: blur(16px) saturate(180%);
+  /* Desfoque do fundo */
   background: rgba(255, 255, 255, 0.85);
+  /* Fundo branco semi-transparente */
 }
 
 .glass-effect-dark {
   backdrop-filter: blur(16px) saturate(180%);
   background: rgba(30, 41, 59, 0.85);
+  /* Fundo escuro semi-transparente */
 }
 
+/* Sombras coloridas (Glow) */
 .shadow-glow-rose {
   box-shadow: 0 0 20px rgba(244, 63, 94, 0.3);
 }
 
 .shadow-glow-orange {
   box-shadow: 0 0 20px rgba(251, 146, 60, 0.3);
+}
+
+@layer utilities {
+  /* Classes utilitárias extras */
+
+  .bg-brand-primary {
+    @apply bg-indigo-600;
+    /* Define bg-brand-primary como indigo-600 */
+  }
+
+  .text-brand-primary {
+    @apply text-indigo-600;
+  }
+
+  .border-brand-primary {
+    @apply border-indigo-200;
+  }
+
+  .bg-brand-light {
+    @apply bg-indigo-50;
+  }
+
+  /* Estilos específicos para impressão (Ctrl+P) */
+  @media print {
+    .no-print {
+      display: none !important;
+      /* Esconde elementos na impressão */
+    }
+
+    .print-only {
+      display: block !important;
+      /* Mostra apenas na impressão */
+    }
+
+    body {
+      background: white;
+      color: black;
+    }
+
+    .print-container {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+  }
+
+  /* Animação de Fade In (Aparecer suavemente) */
+  .fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+      /* Começa um pouco abaixo */
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      /* Termina na posição original */
+    }
+  }
 }

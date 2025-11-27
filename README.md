@@ -1,4 +1,4 @@
-# Delicias da Dri v2
+# Delicias da Dri
 
 Painel administrativo em React + Vite para gerir pedidos, orçamentos e produtos da confeitaria. O MVP esta sendo estruturado em fases, com Supabase como backend.
 
@@ -59,7 +59,7 @@ VITE_SUPABASE_ANON_KEY=seu_anon_key              # chave anon gerada pelo Supaba
 ## Configurando o Supabase
 
 - Copie o conteudo de `spec/schema_sql.md` para o SQL Editor e execute cada bloco (extensoes, tabelas, triggers/policies, seeds) no modo "Run as owner".
-- Crie usuários em **Auth -> Users** (ex.: admin@delicias.com) e depois execute os `UPDATE` em `profiles` para ajustar o campo `role`.
+- Crie usuários em **Auth -> Users** (ex.: <admin@delicias.com>) e depois execute os `UPDATE` em `profiles` para ajustar o campo `role`.
 - Apos rodar os seeds, confirme que `clients`, `products`, `quotes`, `quote_items` e `orders` possuem registros para testes locais.
 - Ajuste as variaveis do `.env.local` com a URL/anon key do seu projeto antes de iniciar `npm run dev`.
 

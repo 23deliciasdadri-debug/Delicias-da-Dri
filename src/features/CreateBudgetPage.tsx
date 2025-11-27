@@ -7,11 +7,10 @@ import { Page } from '../components/layout/Sidebar';
 import { useAuth } from '../providers/AuthProvider';
 import BudgetForm from './budgets/BudgetForm';
 
-interface CreateBudgetPageProps {
-  setCurrentPage: (page: Page) => void;
-}
+import { useNavigate } from 'react-router-dom';
 
-const CreateBudgetPage: React.FC<CreateBudgetPageProps> = ({ setCurrentPage }) => {
+const CreateBudgetPage: React.FC = () => {
+  const navigate = useNavigate();
   const { profile, isLoading: isAuthLoading } = useAuth();
   const isAdmin = profile?.role === 'admin';
 
@@ -47,7 +46,7 @@ const CreateBudgetPage: React.FC<CreateBudgetPageProps> = ({ setCurrentPage }) =
         <Button
           type="button"
           variant="outline"
-          onClick={() => setCurrentPage('budgets')}
+          onClick={() => navigate('/budgets')}
           className="h-11 px-6 border-2 hover:border-rose-500 hover:text-rose-600"
         >
           Voltar
@@ -59,8 +58,8 @@ const CreateBudgetPage: React.FC<CreateBudgetPageProps> = ({ setCurrentPage }) =
   return (
     <BudgetForm
       mode="create"
-      onBack={() => setCurrentPage('budgets')}
-      onSuccess={() => setCurrentPage('budgets')}
+      onBack={() => navigate('/budgets')}
+      onSuccess={() => navigate('/budgets')}
     />
   );
 };

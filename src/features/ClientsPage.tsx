@@ -1,44 +1,33 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Plus,
   Search,
   Phone,
   Mail,
-  UserCircle2,
-  Trash2,
+  MoreHorizontal,
   PencilLine,
-  AlertCircle,
+  Trash2,
   Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../components/ui/card';
+import { Checkbox } from '../components/ui/checkbox';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
 import { useToast } from '../hooks/use-toast';
 import { useAuth } from '../providers/AuthProvider';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { useSupabaseMutation } from '../hooks/useSupabaseMutation';
-import {
-  FilterBar,
-  FilterDrawer,
-  DataTable,
-  PaginatedList,
-  EmptyState,
-  FormField,
-  FormSection,
-} from '../components/patterns';
-import type { DataTableColumn } from '../components/patterns/DataTable';
-import { FormProvider, useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
 import type { Client } from '../types';
 import {
   CLIENTS_PAGE_SIZE,
@@ -48,58 +37,56 @@ import {
   updateClient,
   type ClientInput,
 } from '../services/clientsService';
-
-const clientFormSchema = z.object({
-  name: z.string().min(1, 'Informe o nome do cliente.'),
-  phone: z.string().min(1, 'Informe um telefone válido.'),
-  email: z.string().email('Informe um email válido.').optional().or(z.literal('')),
-});
-
-type ClientFormValues = z.infer<typeof clientFormSchema>;
-
-const getEmptyClientForm = (): ClientFormValues => ({
-  name: '',
-  phone: '',
-  email: '',
-});
+import { PaginatedList, EmptyState, FilterBar } from '../components/patterns';
+import { ClientDialog } from './clients/ClientDialog';
 
 const ClientsPage: React.FC = () => {
   const { profile } = useAuth();
   const { toast } = useToast();
-
   const isAdmin = profile?.role === 'admin';
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const clientForm = useForm<ClientFormValues>({
-    resolver: zodResolver(clientFormSchema),
-    defaultValues: getEmptyClientForm(),
-  });
+  // --- State ---
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [initialEditMode, setInitialEditMode] = useState(false);
 
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+  const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedSearch(searchInput), 350);
     return () => window.clearTimeout(timeout);
   }, [searchInput]);
 
+  useEffect(() => {
+    if (searchParams.get('action') === 'new') {
+      if (!isAdmin) return;
+      setSelectedClient(null);
+      setInitialEditMode(true);
+      setIsDialogOpen(true);
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.delete('action');
+        return next;
+      });
+    }
+  }, [searchParams, setSearchParams, isAdmin]);
+
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
     setPage(1);
   };
 
-  const fetchClients = useCallback(
-    () =>
-      listClients({
-        page,
-        pageSize: CLIENTS_PAGE_SIZE,
-        search: debouncedSearch || undefined,
-      }),
-    [page, debouncedSearch],
-  );
+  // --- Data Fetching ---
+  const fetchClients = useCallback(() => listClients({
+    page,
+    pageSize: CLIENTS_PAGE_SIZE,
+    search: debouncedSearch || undefined,
+  }), [page, debouncedSearch]);
 
   const {
     data: clientsData,
@@ -111,382 +98,288 @@ const ClientsPage: React.FC = () => {
     initialData: { items: [], total: 0 },
   });
 
-  const createClientMutation = useSupabaseMutation(createClient, {
-    onSuccess: () => void refetchClients(),
-  });
-  const updateClientMutation = useSupabaseMutation(
-    ({ id, values }: { id: string; values: Partial<ClientInput> }) => updateClient(id, values),
-    { onSuccess: () => void refetchClients() },
-  );
-  const deleteClientMutation = useSupabaseMutation(deleteClient, {
-    onSuccess: () => void refetchClients(),
-  });
-
-  const isSaving = createClientMutation.isMutating || updateClientMutation.isMutating;
-
+  const clients = clientsData?.items ?? [];
   const totalItems = clientsData?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalItems / CLIENTS_PAGE_SIZE));
 
-  const createdAtFormatter = useMemo(
-    () =>
-      new Intl.DateTimeFormat('pt-BR', {
-        dateStyle: 'short',
-        timeStyle: 'short',
-      }),
-    [],
-  );
+  useEffect(() => {
+    setSelectedClients((prev) => {
+      const visibleIds = new Set(clients.map((c) => c.id));
+      return new Set([...prev].filter((id) => visibleIds.has(id)));
+    });
+  }, [clients]);
 
-  const filterSummary = totalItems
-    ? (
-        <>
-          Encontrados{' '}
-          <span className="font-semibold text-rose-600">{totalItems}</span> clientes
-        </>
-      )
-    : 'Use a busca para encontrar clientes ou cadastre um novo contato.';
+  // --- Mutations ---
+  const createMutation = useSupabaseMutation(createClient, { onSuccess: () => refetchClients() });
+  const updateMutation = useSupabaseMutation(({ id, values }: { id: string; values: Partial<ClientInput> }) => updateClient(id, values), { onSuccess: () => refetchClients() });
+  const deleteMutation = useSupabaseMutation(deleteClient, { onSuccess: () => refetchClients() });
 
-  const renderClientFilters = (prefix: string) => (
-    <div className="space-y-2">
-      <Label htmlFor={`${prefix}-search-clients`} className="text-sm font-semibold flex items-center gap-2">
-        <Search className="size-4 text-rose-500" />
-        Buscar por nome ou telefone
-      </Label>
-      <Input
-        id={`${prefix}-search-clients`}
-        placeholder="Ex.: Maria, (11) 9..."
-        value={searchInput}
-        onChange={(event) => handleSearchChange(event.target.value)}
-      />
-    </div>
-  );
+  const isSaving = createMutation.isMutating || updateMutation.isMutating;
 
-  const handleClearFilters = () => {
-    handleSearchChange('');
-  };
-
-  const clients = clientsData?.items ?? [];
-
-  const clientColumns: DataTableColumn<Client>[] = [
-    {
-      id: 'client',
-      label: 'Cliente',
-      cell: (client) => (
-        <div className="flex items-center gap-3">
-          <div className="bg-rose-100 text-rose-700 rounded-full p-2">
-            <UserCircle2 className="size-5" />
-          </div>
-          <div>
-            <p className="font-semibold text-foreground">{client.name}</p>
-            <p className="text-xs text-muted-foreground">ID: {client.id.slice(0, 8)}...</p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: 'phone',
-      label: 'Telefone',
-      cell: (client) => (
-        <div className="flex items-center gap-2 text-foreground">
-          <Phone className="size-4 text-rose-500" />
-          <span>{client.phone}</span>
-        </div>
-      ),
-    },
-    {
-      id: 'email',
-      label: 'Email',
-      cell: (client) => (
-        <div className="flex items-center gap-2 text-foreground">
-          <Mail className="size-4 text-rose-500" />
-          <span>{client.email || '—'}</span>
-        </div>
-      ),
-    },
-    {
-      id: 'created_at',
-      label: 'Cadastro',
-      cell: (client) => (
-        <span className="text-sm text-muted-foreground">
-          {client.created_at ? createdAtFormatter.format(new Date(client.created_at)) : '—'}
-        </span>
-      ),
-    },
-    {
-      id: 'actions',
-      label: 'Ações',
-      align: 'right',
-      cell: (client) => (
-        <div className="flex justify-end gap-2">
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            className="text-rose-600 hover:bg-rose-50"
-            disabled={!isAdmin}
-            onClick={() => handleEditClient(client)}
-          >
-            <PencilLine className="size-4" />
-          </Button>
-          <Button
-            size="icon-sm"
-            variant="destructive"
-            className="hover:bg-destructive/90"
-            disabled={!isAdmin || deleteClientMutation.isMutating}
-            onClick={() => void handleDeleteClient(client)}
-          >
-            <Trash2 className="size-4" />
-          </Button>
-        </div>
-      ),
-      hideOnMobile: false,
-    },
-  ];
-
-  const handleModalChange = (open: boolean) => {
-    setIsModalOpen(open);
-    if (!open) {
-      setEditingClient(null);
-      clientForm.reset(getEmptyClientForm());
-      clientForm.clearErrors();
-    }
-  };
-
+  // --- Handlers ---
   const handleNewClient = () => {
-    if (!isAdmin) {
-      return;
-    }
-    setEditingClient(null);
-    clientForm.reset(getEmptyClientForm());
-    clientForm.clearErrors();
-    setIsModalOpen(true);
+    if (!isAdmin) return;
+    setSelectedClient(null);
+    setInitialEditMode(true);
+    setIsDialogOpen(true);
   };
 
   const handleEditClient = (client: Client) => {
-    if (!isAdmin) {
-      return;
-    }
-    setEditingClient(client);
-    clientForm.reset({
-      name: client.name,
-      phone: client.phone,
-      email: client.email ?? '',
-    });
-    clientForm.clearErrors();
-    setIsModalOpen(true);
+    if (!isAdmin) return;
+    setSelectedClient(client);
+    setInitialEditMode(true);
+    setIsDialogOpen(true);
   };
 
-  const handleDeleteClient = async (client: Client, opts?: { closeModal?: boolean }) => {
-    if (!isAdmin) {
-      return;
-    }
-    const confirmed = window.confirm(`Remover ${client.name} e seus contatos?`);
-    if (!confirmed) {
-      return;
-    }
-    const result = await deleteClientMutation.mutate(client.id);
-    if (result === undefined && deleteClientMutation.error) {
-      toast({
-      title: 'Erro ao excluir cliente',
-      description: deleteClientMutation.error,
-      status: 'error',
+  const handleDeleteClient = async (client: Client) => {
+    if (!isAdmin || !window.confirm(`Remover ${client.name}?`)) return;
+    await deleteMutation.mutate(client.id);
+    toast({ title: 'Cliente removido', status: 'success' });
+    setIsDialogOpen(false);
+  };
+
+  const handleViewDetails = (client: Client) => {
+    setSelectedClient(client);
+    setInitialEditMode(false);
+    setIsDialogOpen(true);
+  };
+
+  const toggleSelectClient = (id: string, checked: boolean) => {
+    setSelectedClients((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
     });
-      return;
-    }
-    toast({
-      title: 'Cliente removido',
-      description: `${client.name} foi excluído com sucesso.`,
-    });
-    if (opts?.closeModal) {
-      handleModalChange(false);
+  };
+
+  const selectAllCurrent = (checked: boolean) => {
+    setSelectedClients(checked ? new Set(clients.map((c) => c.id)) : new Set());
+  };
+
+  const clearSelection = () => setSelectedClients(new Set());
+
+  const handleBulkDelete = async () => {
+    if (!isAdmin || selectedClients.size === 0) return;
+    if (!window.confirm('Remover clientes selecionados?')) return;
+    setIsBulkProcessing(true);
+    try {
+      const ids = [...selectedClients];
+      await Promise.all(ids.map((id) => deleteMutation.mutate(id)));
+      toast({ title: `${ids.length} cliente(s) removidos`, status: 'success' });
+      clearSelection();
+      await refetchClients();
+    } finally {
+      setIsBulkProcessing(false);
     }
   };
 
-  const handleSubmitClient = clientForm.handleSubmit(async (values) => {
-    if (!isAdmin) {
-      return;
+  const allCurrentSelected = clients.length > 0 && clients.every((c) => selectedClients.has(c.id));
+  const someSelected = selectedClients.size > 0;
+  const headerChecked = allCurrentSelected ? true : someSelected ? 'indeterminate' : false;
+
+  const handleSaveClient = async (values: ClientInput): Promise<boolean> => {
+    if (!isAdmin) return false;
+
+    const saved = selectedClient
+      ? await updateMutation.mutate({ id: selectedClient.id, values })
+      : await createMutation.mutate(values);
+
+    if (saved) {
+      toast({ title: selectedClient ? 'Cliente atualizado' : 'Cliente cadastrado', status: 'success' });
+      if (!selectedClient) setIsDialogOpen(false); // Close if creating new
+      // If updating, ClientDialog handles switching back to view mode
+      return true;
     }
-
-    const payload: ClientInput = {
-      name: values.name.trim(),
-      phone: values.phone.trim(),
-      email: values.email?.trim() || null,
-    };
-
-    const saved = editingClient
-      ? await updateClientMutation.mutate({ id: editingClient.id, values: payload })
-      : await createClientMutation.mutate(payload);
-
-    if (!saved) {
-      return;
-    }
-
-    toast({
-      title: editingClient ? 'Cliente atualizado' : 'Cliente cadastrado',
-      description: `${saved.name} agora está disponível para novos orçamentos.`,
-    });
-    handleModalChange(false);
-  });
-
-  const mutationError = createClientMutation.error || updateClientMutation.error;
+    return false;
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="space-y-6 fade-in h-[calc(100vh-8rem)] flex flex-col">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-none">
         <div>
-          <p className="text-sm text-muted-foreground uppercase tracking-wide">Clientes</p>
-          <h1 className="text-4xl font-serif font-bold bg-gradient-to-r from-rose-600 to-orange-500 bg-clip-text text-transparent">
-            CRM
-          </h1>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Clientes (CRM)</h1>
+          <p className="text-slate-500 mt-1">Gerencie sua base de clientes e histórico.</p>
         </div>
-        <Button
-          onClick={handleNewClient}
-          disabled={!isAdmin}
-          className="gradient-primary text-white shadow-lg shadow-rose-500/30 hover:shadow-xl hover:scale-[1.02] h-12 px-6 disabled:cursor-not-allowed"
-        >
-          <Plus className="size-5" />
-          Novo cliente
+
+        <Button onClick={handleNewClient} className="hidden sm:flex bg-rose-500 hover:bg-rose-600 text-white">
+          <Plus className="mr-2 h-4 w-4" />
+          Novo Cliente
         </Button>
       </div>
 
-      {!isAdmin && (
-        <Alert>
-          <AlertTitle>Modo somente leitura</AlertTitle>
-          <AlertDescription>
-            Apenas administradores podem cadastrar ou editar clientes. Entre com um usuário admin
-            para liberar as ações.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <FilterBar
-        summary={filterSummary}
-        onOpenDrawer={() => setIsFilterDrawerOpen(true)}
-        filtersClassName="md:grid-cols-1"
-      >
-        {renderClientFilters('desktop')}
-      </FilterBar>
-      <FilterDrawer
-        open={isFilterDrawerOpen}
-        onOpenChange={setIsFilterDrawerOpen}
-        title="Filtros de clientes"
-        onClear={handleClearFilters}
-        onApply={() => setIsFilterDrawerOpen(false)}
-      >
-        {renderClientFilters('mobile')}
-      </FilterDrawer>
-
       {listError && (
         <Alert variant="destructive">
-          <AlertCircle className="size-4" />
-          <AlertTitle>Não foi possível carregar os clientes</AlertTitle>
-          <AlertDescription className="flex flex-col gap-3">
-            <span>{listError}</span>
-            <Button variant="outline" size="sm" onClick={() => void refetchClients()}>
-              Tentar novamente
-            </Button>
-          </AlertDescription>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Erro</AlertTitle>
+          <AlertDescription>{listError}</AlertDescription>
         </Alert>
       )}
 
-      <DataTable
-        data={clients}
-        columns={clientColumns}
-        keyExtractor={(client) => client.id}
-        isLoading={isLoading}
-        loadingText="Carregando clientes..."
-        emptyState={
-          <EmptyState
-            icon={<UserCircle2 className="size-10 text-rose-500" />}
-            title="Nenhum cliente encontrado"
-            description="Ajuste a busca ou cadastre um novo cliente."
-            action={
-              isAdmin ? (
-                <Button onClick={handleNewClient} className="gradient-primary text-white">
-                  <Plus className="size-4" />
-                  Novo cliente
-                </Button>
-              ) : null
-            }
+      <div className="flex items-center justify-between gap-4 flex-none">
+        <div className="relative w-full sm:w-96">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Input
+            placeholder="Buscar por nome, email..."
+            className="pl-10 bg-white"
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
           />
-        }
+        </div>
+      </div>
+
+      <div className="flex-1 min-h-0">
+        <Card className="border-slate-200 shadow-sm h-full flex flex-col overflow-hidden">
+          <CardContent className="p-0 flex-1 overflow-auto">
+            {isLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-rose-500" />
+              </div>
+            ) : clients.length === 0 ? (
+              <div className="py-12">
+                <EmptyState
+                  title="Nenhum cliente encontrado"
+                  description="Tente buscar por outro termo ou cadastre um novo cliente."
+                  icon={<Search className="h-10 w-10 text-slate-300" />}
+                />
+              </div>
+            ) : (
+              <>
+                {someSelected && (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-rose-100 bg-rose-50/70">
+                    <div className="text-sm font-medium text-slate-800">
+                      {selectedClients.size} selecionado(s)
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={(e) => { e.stopPropagation(); void handleBulkDelete(); }}
+                        disabled={isBulkProcessing || !isAdmin}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Excluir selecionados
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                <div className="min-w-[800px]">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
+                      <TableRow className="hover:bg-slate-50/50">
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={headerChecked}
+                            onCheckedChange={(checked) => selectAllCurrent(Boolean(checked))}
+                            aria-label="Selecionar todos"
+                          />
+                        </TableHead>
+                        <TableHead className="w-[300px]">Cliente</TableHead>
+                        <TableHead>Contatos</TableHead>
+                        <TableHead>Cadastro</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {clients.map((client) => (
+                        <TableRow
+                          key={client.id}
+                          className="group hover:bg-slate-50/50 cursor-pointer"
+                          onClick={(e) => {
+                            if ((e.target as HTMLElement).closest('input')) return;
+                            handleViewDetails(client);
+                          }}
+                        >
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={selectedClients.has(client.id)}
+                              onCheckedChange={(checked) => toggleSelectClient(client.id, Boolean(checked))}
+                              aria-label={`Selecionar cliente ${client.name}`}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-3">
+                              <Avatar className="h-9 w-9 border border-slate-200">
+                                <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${client.name}`} />
+                                <AvatarFallback>{client.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium text-slate-900 group-hover:text-rose-600 transition-colors">{client.name}</p>
+                                <p className="text-xs text-slate-500">ID: #{client.id.slice(0, 8)}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1 text-sm text-slate-600">
+                              {client.email && (
+                                <div className="flex items-center">
+                                  <Mail className="h-3 w-3 mr-2 text-slate-400" />
+                                  {client.email}
+                                </div>
+                              )}
+                              <div className="flex items-center">
+                                <Phone className="h-3 w-3 mr-2 text-slate-400" />
+                                {client.phone}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-slate-500">
+                              {client.created_at ? new Date(client.created_at).toLocaleDateString('pt-BR') : '—'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600" onClick={(e) => e.stopPropagation()}>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditClient(client); }} disabled={!isAdmin}>
+                                  <PencilLine className="mr-2 h-4 w-4" /> Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-rose-600" onClick={(e) => { e.stopPropagation(); handleDeleteClient(client); }} disabled={!isAdmin}>
+                                  <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
+            )}
+          </CardContent>
+          {totalItems > 0 && (
+            <div className="p-4 border-t border-slate-100">
+              <PaginatedList
+                page={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={CLIENTS_PAGE_SIZE}
+                onPageChange={(nextPage) => setPage(Math.max(1, Math.min(totalPages, nextPage)))}
+                className="w-full"
+              />
+            </div>
+          )}
+        </Card>
+      </div>
+
+      <ClientDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        client={selectedClient}
+        onSave={handleSaveClient}
+        onDelete={handleDeleteClient}
+        isAdmin={isAdmin}
+        isLoading={isSaving}
+        initialEditMode={initialEditMode}
       />
-
-      {totalItems > 0 ? (
-        <PaginatedList
-          page={page}
-          totalPages={totalPages}
-          totalItems={totalItems}
-          pageSize={CLIENTS_PAGE_SIZE}
-          onPageChange={(nextPage) => setPage(Math.max(1, Math.min(totalPages, nextPage)))}
-        />
-      ) : null}
-      <Dialog open={isModalOpen} onOpenChange={handleModalChange}>
-        <DialogContent className="max-w-lg bg-card">
-          <FormProvider {...clientForm}>
-            <form className="space-y-5" onSubmit={handleSubmitClient}>
-              <DialogHeader>
-                <DialogTitle>{editingClient ? 'Editar cliente' : 'Novo cliente'}</DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground">
-                Todos os dados vão direto para a tabela <code>clients</code>.
-              </DialogDescription>
-            </DialogHeader>
-
-              <FormSection
-                title="Dados do cliente"
-                description="Essas informações são usadas nos orçamentos e contatos."
-              >
-                <FormField
-                  name="name"
-                  label="Nome"
-                  required
-                  render={({ field }) => <Input {...field} placeholder="Nome completo" />}
-                />
-                <FormField
-                  name="phone"
-                  label="Telefone"
-                  required
-                  render={({ field }) => <Input {...field} placeholder="(11) 99999-9999" />}
-                />
-                <FormField
-                  name="email"
-                  label="Email"
-                  render={({ field }) => (
-                    <Input {...field} type="email" placeholder="email@cliente.com" />
-                  )}
-                />
-              </FormSection>
-
-              {mutationError ? (
-                <Alert variant="destructive">
-                  <AlertTitle>Erro de Supabase</AlertTitle>
-                  <AlertDescription>{mutationError}</AlertDescription>
-                </Alert>
-              ) : null}
-
-              <DialogFooter className="pt-4">
-                <Button type="button" variant="outline" onClick={() => handleModalChange(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={isSaving}>
-                  {isSaving && <Loader2 className="size-4 animate-spin" />}
-                  {editingClient ? 'Salvar alterações' : 'Cadastrar cliente'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </FormProvider>
-        </DialogContent>
-      </Dialog>
-    </div>
+    </div >
   );
 };
 
 export default ClientsPage;
-
-
-
-
-
-
-
-
-
-

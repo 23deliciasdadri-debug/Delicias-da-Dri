@@ -2,16 +2,16 @@ import type { Config } from 'tailwindcss';
 
 const withOpacityValue =
   (variable: string) =>
-  ({ opacityValue }: { opacityValue?: string }) => {
-    if (opacityValue !== undefined) {
-      const numericValue = Number(opacityValue);
-      if (!Number.isNaN(numericValue)) {
-        const percentage = Math.max(0, Math.min(1, numericValue)) * 100;
-        return `color-mix(in oklch, var(${variable}) ${percentage}%, transparent)`;
+    ({ opacityValue }: { opacityValue?: string }) => {
+      if (opacityValue !== undefined) {
+        const numericValue = Number(opacityValue);
+        if (!Number.isNaN(numericValue)) {
+          const percentage = Math.max(0, Math.min(1, numericValue)) * 100;
+          return `color-mix(in oklch, var(${variable}) ${percentage}%, transparent)`;
+        }
       }
-    }
-    return `var(${variable})`;
-  };
+      return `var(${variable})`;
+    };
 
 const config: Config = {
   darkMode: ['class'],
@@ -49,7 +49,7 @@ const config: Config = {
         success: withOpacityValue('--success'),
         warning: withOpacityValue('--warning'),
         info: withOpacityValue('--info'),
-      },
+      } as any,
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 4px)',

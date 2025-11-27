@@ -1,93 +1,63 @@
-import React, { useEffect, useState } from 'react';
-import { Page } from './components/layout/Sidebar';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
+import AdminLayout from './components/layout/AdminLayout';
 import LoginPage from './features/LoginPage';
-import AppLayout from './components/layout/AppLayout';
 import DashboardPage from './features/DashboardPage';
 import OrdersPage from './features/OrdersPage';
 import BudgetsPage from './features/BudgetsPage';
 import CreateBudgetPage from './features/CreateBudgetPage';
 import ProductsPage from './features/ProductsPage';
 import ClientsPage from './features/ClientsPage';
+import InventoryPage from './features/InventoryPage';
+import PublicProposalPage from './features/PublicProposalPage';
 import { useAuth } from './providers/AuthProvider';
 
-const DEFAULT_PAGE: Page = 'dashboard';
-const PERSISTENCE_KEY = 'delicias-da-dri.current-page';
-const ALLOWED_PAGES: Page[] = ['dashboard', 'orders', 'budgets', 'create-budget', 'products', 'clients'];
-
-const getInitialPage = (): Page => {
-  if (typeof window === 'undefined') {
-    return DEFAULT_PAGE;
-  }
-  const stored = window.localStorage.getItem(PERSISTENCE_KEY);
-  if (stored && ALLOWED_PAGES.includes(stored as Page)) {
-    return stored as Page;
-  }
-  return DEFAULT_PAGE;
-};
-
-const App: React.FC = () => {
-  const { session, isLoading, signOut } = useAuth();
-  const [currentPage, setCurrentPage] = useState<Page>(() => getInitialPage());
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    window.localStorage.setItem(PERSISTENCE_KEY, currentPage);
-  }, [currentPage]);
-
-  const handleLogout = () => {
-    void signOut();
-  };
-
-  // Renders the component for the current active page.
-  const renderCurrentPage = () => {
-    switch (currentPage) {
-      case 'dashboard':
-        return <DashboardPage />;
-      case 'orders':
-        return <OrdersPage />;
-      case 'budgets':
-        return <BudgetsPage setCurrentPage={setCurrentPage} />;
-      case 'create-budget':
-        return <CreateBudgetPage setCurrentPage={setCurrentPage} />;
-      case 'products':
-        return <ProductsPage />;
-      case 'clients':
-        return <ClientsPage />;
-      default:
-        // Fallback to dashboard for any unknown page state.
-        return <DashboardPage />;
-    }
-  };
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { session, isLoading } = useAuth();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-50 via-pink-50 to-orange-50">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center space-y-2">
-          <p className="text-xl font-semibold text-rose-600">Carregando...</p>
-          <p className="text-sm text-muted-foreground">Conectando ao Supabase</p>
+          <div className="w-8 h-8 border-4 border-rose-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm text-slate-500">Carregando...</p>
         </div>
       </div>
     );
   }
 
   if (!session) {
-    return <LoginPage />;
+    return <Navigate to="/" replace />;
   }
 
-  // If authenticated, render the main application layout with the current page.
+  return <AdminLayout>{children}</AdminLayout>;
+};
+
+const App: React.FC = () => {
   return (
-    <AppLayout
-      currentPage={currentPage}
-      setCurrentPage={setCurrentPage}
-      isSidebarOpen={isSidebarOpen}
-      setIsSidebarOpen={setIsSidebarOpen}
-      handleLogout={handleLogout}
-    >
-      {renderCurrentPage()}
-    </AppLayout>
+    <Router>
+      <Routes>
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/public/proposal/:id" element={<PublicProposalPage />} />
+
+        {/* Protected Routes */}
+        <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        <Route path="/budgets" element={<ProtectedRoute><BudgetsPage /></ProtectedRoute>} />
+        <Route path="/budgets/new" element={<ProtectedRoute><CreateBudgetPage /></ProtectedRoute>} />
+        <Route path="/budgets/:id" element={<ProtectedRoute><CreateBudgetPage /></ProtectedRoute>} />
+        <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
+        <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
+        <Route path="/inventory" element={<ProtectedRoute><InventoryPage /></ProtectedRoute>} />
+        <Route path="/customers" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} />
+
+        {/* Redirect root to dashboard if authenticated, or login if not (handled by ProtectedRoute logic mostly, but explicit redirect helps) */}
+        {/* Actually, since root is login, we might want a redirect if already logged in. 
+            For now, let's keep it simple. If user goes to /, they see login. 
+            Ideally LoginPage should redirect if already logged in. */}
+      </Routes>
+      <Toaster position="top-right" richColors />
+    </Router>
   );
 };
 

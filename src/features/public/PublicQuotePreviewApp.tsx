@@ -1,5 +1,5 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Check, MessageCircle } from 'lucide-react';
 
 import QuotePreview from '../budgets/QuotePreview';
 import { Button } from '../../components/ui/button';
@@ -109,15 +109,9 @@ const PublicQuotePreviewApp: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-rose-50 via-white to-white">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
-        <header className="text-center space-y-1">
-          <p className="text-xs uppercase tracking-[0.6em] text-rose-400">Delicias da Dri</p>
-          <h1 className="text-3xl font-serif font-bold text-foreground">Visualizacao de orçamento</h1>
-          <p className="text-sm text-muted-foreground">
-            Este link e seguro e permite apenas a leitura deste documento.
-          </p>
-        </header>
+    <div className="min-h-screen bg-gradient-to-b from-rose-50 to-rose-100/70">
+      <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-12">
+        {/* Header Removed to match prototype */}
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center gap-3 py-20 text-muted-foreground">
@@ -132,15 +126,20 @@ const PublicQuotePreviewApp: React.FC = () => {
         ) : quote ? (
           <QuotePreview
             quote={quote}
-            showApproveHint
+            variant="public"
             footerActions={
               <>
                 {quote.status !== 'Aprovado' ? (
-                  <Button className="w-full" onClick={handleApproveQuote} disabled={isApproving}>
-                    {isApproving ? 'Enviando confirmação...' : 'Aprovar orçamento'}
+                  <Button
+                    className="w-full h-12 text-base bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={handleApproveQuote}
+                    disabled={isApproving}
+                  >
+                    <Check className="mr-2 h-5 w-5" />
+                    {isApproving ? 'Enviando confirmação...' : 'Aprovar Orçamento'}
                   </Button>
                 ) : (
-                  <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-3 text-sm text-emerald-700 text-center">
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-3 text-sm text-emerald-700 text-center w-full">
                     Este orçamento foi aprovado em{' '}
                     <span className="font-semibold">
                       {quote.approved_at
@@ -150,14 +149,18 @@ const PublicQuotePreviewApp: React.FC = () => {
                     .
                   </div>
                 )}
-                <Button className="w-full" variant="secondary" onClick={handleWhatsapp}>
-                  Conversar pelo WhatsApp
+                <Button
+                  className="w-full h-12 text-base bg-white hover:bg-slate-50 text-slate-700 border border-slate-300"
+                  variant="outline"
+                  onClick={handleWhatsapp}
+                >
+                  <MessageCircle className="mr-2 h-5 w-5 text-green-600" />
+                  Falar no WhatsApp
                 </Button>
                 {approvalFeedback ? (
                   <p
-                    className={`text-xs text-center ${
-                      approvalFeedback.type === 'success' ? 'text-emerald-700' : 'text-rose-600'
-                    }`}
+                    className={`text-xs text-center ${approvalFeedback.type === 'success' ? 'text-emerald-700' : 'text-rose-600'
+                      }`}
                   >
                     {approvalFeedback.message}
                   </p>

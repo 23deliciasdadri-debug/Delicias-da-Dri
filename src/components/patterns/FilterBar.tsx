@@ -1,65 +1,50 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
-import { Button } from '../ui/button';
-import { Filter } from 'lucide-react';
 
-export interface FilterBarProps {
-  summary?: React.ReactNode;
-  actions?: React.ReactNode;
-  children?: React.ReactNode;
-  onOpenDrawer?: () => void;
-  drawerLabel?: string;
-  filtersClassName?: string;
+type FilterBarProps = {
+  /**
+   * Conteúdo da seção esquerda (ex.: tabs/chips de filtro).
+   */
+  left?: React.ReactNode;
+  /**
+   * Conteúdo da seção direita (ex.: busca, ações adicionais).
+   */
+  right?: React.ReactNode;
   className?: string;
-}
+  leftWrapClassName?: string;
+  rightWrapClassName?: string;
+  /**
+   * Define se a área esquerda deve usar o estilo de pílulas (padrão do Estoque).
+   */
+  pillStyle?: boolean;
+};
 
-/**
- * Container padrão para filtros: mostra resumo/ações
- * e deixa os campos visíveis a partir do breakpoint md.
- * Em telas menores, os filtros abrem pelo botão que dispara o drawer.
- */
 export const FilterBar: React.FC<FilterBarProps> = ({
-  summary,
-  actions,
-  children,
-  onOpenDrawer,
-  drawerLabel = 'Filtros',
-  filtersClassName,
+  left,
+  right,
   className,
-}) => (
-  <section
-    className={cn(
-      'rounded-2xl border border-border/60 bg-card/90 p-4 shadow-sm backdrop-blur transition-colors dark:bg-card/60',
-      className,
-    )}
-  >
-    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-      {summary ? <div className="text-sm text-muted-foreground">{summary}</div> : <span />}
-      <div className="flex flex-wrap items-center gap-2">
-        {actions}
-        {onOpenDrawer ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="md:hidden"
-            onClick={onOpenDrawer}
-          >
-            <Filter className="mr-1.5 h-4 w-4" />
-            {drawerLabel}
-          </Button>
-        ) : null}
-      </div>
+  leftWrapClassName,
+  rightWrapClassName,
+  pillStyle = true,
+}) => {
+  return (
+    <div className={cn('flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 flex-none', className)}>
+      {left ? (
+        <div
+          className={cn(
+            'flex flex-wrap gap-2',
+            pillStyle && 'bg-slate-100 border border-slate-200 rounded-lg p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]',
+            leftWrapClassName,
+          )}
+        >
+          {left}
+        </div>
+      ) : (
+        <div />
+      )}
+      {right ? <div className={cn('w-full sm:w-auto', rightWrapClassName)}>{right}</div> : null}
     </div>
-    {children ? (
-      <div
-        className={cn(
-          'mt-4 hidden gap-4 md:grid md:grid-cols-2 lg:grid-cols-3',
-          filtersClassName,
-        )}
-      >
-        {children}
-      </div>
-    ) : null}
-  </section>
-);
+  );
+};
+
+export default FilterBar;

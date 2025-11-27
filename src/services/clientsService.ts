@@ -8,7 +8,16 @@ const mapClient = (row: Record<string, unknown>): Client => ({
   name: String(row.name),
   phone: String(row.phone),
   email: (row.email as string) ?? null,
+  birth_date: (row.birth_date as string) ?? null,
+  document_id: (row.document_id as string) ?? null,
+  address_line1: (row.address_line1 as string) ?? null,
+  address_line2: (row.address_line2 as string) ?? null,
+  city: (row.city as string) ?? null,
+  state: (row.state as string) ?? null,
+  postal_code: (row.postal_code as string) ?? null,
+  notes: (row.notes as string) ?? null,
   created_at: row.created_at as string | undefined,
+  updated_at: row.updated_at as string | undefined,
 });
 
 export interface ClientListParams {
@@ -22,7 +31,7 @@ export interface ClientListResponse {
   total: number;
 }
 
-export type ClientInput = Omit<Client, 'id' | 'created_at'>;
+export type ClientInput = Omit<Client, 'id' | 'created_at' | 'updated_at'>;
 
 export async function listClients({
   page = 1,

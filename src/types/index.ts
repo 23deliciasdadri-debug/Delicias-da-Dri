@@ -27,7 +27,16 @@ export interface Client {
   name: string;
   phone: string;
   email?: string | null;
+  birth_date?: string | null;
+  document_id?: string | null;
+  address_line1?: string | null;
+  address_line2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postal_code?: string | null;
+  notes?: string | null;
   created_at?: string;
+  updated_at?: string;
 }
 
 export type QuoteStatus = 'Pendente' | 'Aprovado' | 'Recusado';
@@ -48,6 +57,20 @@ export interface Quote {
   public_link_last_viewed_at?: string | null;
 }
 
+export interface InventoryItem {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  min_stock: number;
+  category?: string | null;
+  status?: string | null;
+  location?: string | null;
+  notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface QuoteItem {
   id: number;
   quote_id: string;
@@ -59,11 +82,13 @@ export interface QuoteItem {
 
 export type OrderStatus =
   | 'Aprovado'
-  | 'Em Produção'
+  | 'Em Produ\u00e7\u00e3o'
   | 'Pronto para Entrega'
   | 'Em Entrega'
   | 'Entregue'
   | 'Cancelado';
+
+export type InventoryStatus = 'ok' | 'low' | 'critical' | string;
 
 export interface Order {
   id: string;
