@@ -206,7 +206,7 @@ export function OrderFormDialog({ open, onOpenChange, onSuccess, orderToEdit }: 
                         <div className="space-y-2">
                             <Label>Data de Entrega</Label>
                             <div className="relative">
-                                <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input type="date" className="pl-10" {...form.register('delivery_date')} />
                             </div>
                             {form.formState.errors.delivery_date && (
@@ -223,7 +223,7 @@ export function OrderFormDialog({ open, onOpenChange, onSuccess, orderToEdit }: 
                         />
                     </div>
 
-                    <div className="space-y-4 border rounded-lg p-4 bg-slate-50/50">
+                    <div className="space-y-4 border rounded-lg p-4 bg-muted/20 border-border">
                         <div className="flex items-center justify-between">
                             <Label className="text-base">Itens do Pedido</Label>
                             <Button type="button" variant="outline" size="sm" onClick={() => append({ productId: '', productName: '', quantity: 1, unitPrice: 0 })}>
@@ -240,7 +240,7 @@ export function OrderFormDialog({ open, onOpenChange, onSuccess, orderToEdit }: 
                                             value={form.watch(`items.${index}.productId`) || 'custom'}
                                             onValueChange={(val) => handleProductSelect(index, val === 'custom' ? '' : val)}
                                         >
-                                            <SelectTrigger className="h-9 bg-white">
+                                            <SelectTrigger className="h-9 bg-card">
                                                 <SelectValue placeholder="Selecione..." />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -252,21 +252,21 @@ export function OrderFormDialog({ open, onOpenChange, onSuccess, orderToEdit }: 
                                         </Select>
                                         {/* If custom or just to show name */}
                                         <Input
-                                            className="h-9 bg-white mt-1"
+                                            className="h-9 bg-card mt-1"
                                             placeholder="Nome do item"
                                             {...form.register(`items.${index}.productName`)}
                                         />
                                     </div>
                                     <div className="col-span-2 space-y-1">
                                         <Label className="text-xs">Qtd</Label>
-                                        <Input type="number" min="1" className="h-9 bg-white" {...form.register(`items.${index}.quantity`, { valueAsNumber: true })} />
+                                        <Input type="number" min="1" className="h-9 bg-card" {...form.register(`items.${index}.quantity`, { valueAsNumber: true })} />
                                     </div>
                                     <div className="col-span-3 space-y-1">
                                         <Label className="text-xs">Valor Un.</Label>
-                                        <Input type="number" step="0.01" className="h-9 bg-white" {...form.register(`items.${index}.unitPrice`, { valueAsNumber: true })} />
+                                        <Input type="number" step="0.01" className="h-9 bg-card" {...form.register(`items.${index}.unitPrice`, { valueAsNumber: true })} />
                                     </div>
                                     <div className="col-span-2 pb-1">
-                                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-slate-400 hover:text-rose-600">
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="text-muted-foreground hover:text-destructive">
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </div>
@@ -281,7 +281,7 @@ export function OrderFormDialog({ open, onOpenChange, onSuccess, orderToEdit }: 
                         </div>
                         <div className="flex gap-3">
                             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                            <Button type="submit" className="bg-rose-500 hover:bg-rose-600 text-white" disabled={isMutating}>
+                            <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isMutating}>
                                 {isMutating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 <Save className="mr-2 h-4 w-4" /> {isEditing ? 'Salvar Alterações' : 'Criar Pedido'}
                             </Button>

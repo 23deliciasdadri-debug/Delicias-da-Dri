@@ -31,9 +31,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   onToggleCollapse,
 }) => {
   const isDesktopCollapsed = isCollapsed && !isSidebarOpen;
-  const collapsedWidth = '4.5rem';
-  const expandedWidth = '18rem';
-  const width = isSidebarOpen ? expandedWidth : isDesktopCollapsed ? collapsedWidth : expandedWidth;
 
   const handleNavigation = (page: Page) => {
     setCurrentPage(page);
@@ -46,11 +43,14 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <TooltipProvider delayDuration={0}>
       <aside
-        className={`fixed inset-y-0 left-0 z-50 border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-xl transition-[width,transform] duration-300 lg:shadow-none ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-          }`}
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-xl transition-[width,transform] duration-300 lg:shadow-none",
+          isSidebarOpen ? "translate-x-0 w-72" : "-translate-x-full lg:translate-x-0",
+          !isSidebarOpen && isDesktopCollapsed ? "lg:w-[4.5rem]" : "lg:w-72",
+          isSidebarOpen && "w-72"
+        )}
         aria-label="Menu lateral"
         data-collapsed={isDesktopCollapsed}
-        style={{ width, minWidth: width }}
       >
         <div className="grid h-full grid-rows-[auto,1fr,auto] overflow-hidden">
           <div
@@ -100,7 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   <Button
                     variant={isActive ? 'secondary' : 'ghost'}
                     className={cn(
-                      'group block h-12 rounded-xl text-base font-medium transition-colors flex items-center gap-3',
+                      'group h-12 rounded-xl text-base font-medium transition-colors flex items-center gap-3',
                       isActive
                         ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
                         : 'hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground',

@@ -23,6 +23,15 @@ const DARK_ICON = '/favicon-dark.svg';
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 const resolveInitialTheme = (): ThemeMode => {
+  if (typeof window !== 'undefined') {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (saved === 'light' || saved === 'dark') {
+      return saved;
+    }
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+  }
   return 'light';
 };
 
@@ -98,12 +107,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const toggleTheme = useCallback(() => {
-    // Dark mode disabled for now
-    setThemeState('light');
+    const next = theme === 'light' ? 'dark' : 'light';
+    setThemeState(next);
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem(STORAGE_KEY, 'light');
+      window.localStorage.setItem(STORAGE_KEY, next);
     }
-  }, []);
+  }, [theme]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {

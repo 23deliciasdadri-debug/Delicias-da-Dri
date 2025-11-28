@@ -198,8 +198,8 @@ const ClientsPage: React.FC = () => {
     <div className="space-y-6 fade-in h-[calc(100vh-8rem)] flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-none">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Clientes (CRM)</h1>
-          <p className="text-slate-500 mt-1">Gerencie sua base de clientes e histórico.</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Clientes (CRM)</h1>
+          <p className="text-muted-foreground mt-1">Gerencie sua base de clientes e histórico.</p>
         </div>
 
         <Button onClick={handleNewClient} className="hidden sm:flex bg-rose-500 hover:bg-rose-600 text-white">
@@ -221,7 +221,7 @@ const ClientsPage: React.FC = () => {
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           <Input
             placeholder="Buscar por nome, email..."
-            className="pl-10 bg-white"
+            className="pl-10 bg-card"
             value={searchInput}
             onChange={(e) => handleSearchChange(e.target.value)}
           />
@@ -229,7 +229,7 @@ const ClientsPage: React.FC = () => {
       </div>
 
       <div className="flex-1 min-h-0">
-        <Card className="border-slate-200 shadow-sm h-full flex flex-col overflow-hidden">
+        <Card className="border-border shadow-sm h-full flex flex-col overflow-hidden">
           <CardContent className="p-0 flex-1 overflow-auto">
             {isLoading ? (
               <div className="flex justify-center py-12">
@@ -246,8 +246,8 @@ const ClientsPage: React.FC = () => {
             ) : (
               <>
                 {someSelected && (
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-rose-100 bg-rose-50/70">
-                    <div className="text-sm font-medium text-slate-800">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-primary/20 bg-primary/5">
+                    <div className="text-sm font-medium text-foreground">
                       {selectedClients.size} selecionado(s)
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -265,8 +265,8 @@ const ClientsPage: React.FC = () => {
                 )}
                 <div className="min-w-[800px]">
                   <Table>
-                    <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
-                      <TableRow className="hover:bg-slate-50/50">
+                    <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
+                      <TableRow className="hover:bg-muted/50">
                         <TableHead className="w-12">
                           <Checkbox
                             checked={headerChecked}
@@ -284,7 +284,7 @@ const ClientsPage: React.FC = () => {
                       {clients.map((client) => (
                         <TableRow
                           key={client.id}
-                          className="group hover:bg-slate-50/50 cursor-pointer"
+                          className="group hover:bg-muted/50 cursor-pointer"
                           onClick={(e) => {
                             if ((e.target as HTMLElement).closest('input')) return;
                             handleViewDetails(client);
@@ -299,39 +299,39 @@ const ClientsPage: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-3">
-                              <Avatar className="h-9 w-9 border border-slate-200">
+                              <Avatar className="h-9 w-9 border border-border">
                                 <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${client.name}`} />
                                 <AvatarFallback>{client.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                               </Avatar>
                               <div>
-                                <p className="font-medium text-slate-900 group-hover:text-rose-600 transition-colors">{client.name}</p>
-                                <p className="text-xs text-slate-500">ID: #{client.id.slice(0, 8)}</p>
+                                <p className="font-medium text-foreground group-hover:text-primary transition-colors">{client.name}</p>
+                                <p className="text-xs text-muted-foreground">ID: #{client.id.slice(0, 8)}</p>
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="space-y-1 text-sm text-slate-600">
+                            <div className="space-y-1 text-sm text-muted-foreground">
                               {client.email && (
                                 <div className="flex items-center">
-                                  <Mail className="h-3 w-3 mr-2 text-slate-400" />
+                                  <Mail className="h-3 w-3 mr-2 text-muted-foreground" />
                                   {client.email}
                                 </div>
                               )}
                               <div className="flex items-center">
-                                <Phone className="h-3 w-3 mr-2 text-slate-400" />
+                                <Phone className="h-3 w-3 mr-2 text-muted-foreground" />
                                 {client.phone}
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <span className="text-sm text-slate-500">
+                            <span className="text-sm text-muted-foreground">
                               {client.created_at ? new Date(client.created_at).toLocaleDateString('pt-BR') : '—'}
                             </span>
                           </TableCell>
                           <TableCell className="text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600" onClick={(e) => e.stopPropagation()}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={(e) => e.stopPropagation()}>
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
@@ -339,7 +339,7 @@ const ClientsPage: React.FC = () => {
                                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditClient(client); }} disabled={!isAdmin}>
                                   <PencilLine className="mr-2 h-4 w-4" /> Editar
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="text-rose-600" onClick={(e) => { e.stopPropagation(); handleDeleteClient(client); }} disabled={!isAdmin}>
+                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteClient(client); }} disabled={!isAdmin}>
                                   <Trash2 className="mr-2 h-4 w-4" /> Excluir
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
@@ -354,7 +354,7 @@ const ClientsPage: React.FC = () => {
             )}
           </CardContent>
           {totalItems > 0 && (
-            <div className="p-4 border-t border-slate-100">
+            <div className="p-4 border-t border-border">
               <PaginatedList
                 page={page}
                 totalPages={totalPages}
@@ -378,7 +378,7 @@ const ClientsPage: React.FC = () => {
         isLoading={isSaving}
         initialEditMode={initialEditMode}
       />
-    </div >
+    </div>
   );
 };
 

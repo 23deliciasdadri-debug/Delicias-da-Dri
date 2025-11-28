@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
-import { theme } from '../../styles/theme';
+
 
 export interface PageHeaderProps {
   title: string;
@@ -41,15 +41,14 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     >
       <div className={cn('space-y-3', alignmentClasses)}>
         {eyebrow ? (
-          <div className="text-sm font-semibold uppercase tracking-wide text-rose-500">
+          <div className="text-sm font-semibold uppercase tracking-wide text-destructive">
             {eyebrow}
           </div>
         ) : null}
 
         <div>
           <h1
-            className="text-3xl font-serif font-bold leading-tight text-transparent lg:text-4xl"
-            style={{ backgroundImage: theme.gradients.primary }}
+            className="text-3xl font-serif font-bold leading-tight text-transparent lg:text-4xl gradient-primary bg-clip-text"
           >
             {title}
           </h1>

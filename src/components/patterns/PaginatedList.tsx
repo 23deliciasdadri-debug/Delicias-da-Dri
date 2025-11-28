@@ -26,7 +26,7 @@ export const PaginatedList: React.FC<PaginatedListProps> = ({
 
   const defaultSummary = (
     <p className="text-sm text-muted-foreground">
-      Página <span className="font-semibold text-rose-600">{page}</span> de {totalPages}{' '}
+      Página <span className="font-semibold text-primary">{page}</span> de {totalPages}{' '}
       {pageSize && totalItems ? (
         <>
           · exibindo {startItem}-{endItem} de {totalItems}
@@ -40,7 +40,7 @@ export const PaginatedList: React.FC<PaginatedListProps> = ({
   return (
     <div
       className={cn(
-        'flex flex-col gap-3 rounded-2xl border border-dashed border-rose-200 bg-rose-50/40 p-4 sm:flex-row sm:items-center sm:justify-between',
+        'flex flex-col gap-3 rounded-2xl border border-dashed border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between',
         className,
       )}
     >

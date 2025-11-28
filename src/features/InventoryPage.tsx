@@ -226,8 +226,8 @@ export default function InventoryPage() {
     <div className="space-y-6 fade-in h-auto md:h-[calc(100vh-8rem)] flex flex-col pb-20 md:pb-0">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-none">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Controle de Estoque</h1>
-          <p className="text-sm sm:text-base text-slate-500 mt-1">Gerencie insumos, embalagens e materiais de trabalho.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">Controle de Estoque</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">Gerencie insumos, embalagens e materiais de trabalho.</p>
         </div>
 
         <AppDialog
@@ -340,44 +340,44 @@ export default function InventoryPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6 flex-none">
-        <Card className="border-slate-200 shadow-sm">
+        <Card className="border-border shadow-sm bg-card">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Itens críticos</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Itens críticos</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
               <AlertTriangle className="h-8 w-8 text-rose-500 mr-3" />
               <div>
-                <div className="text-2xl font-bold text-slate-900">{metrics.critical}</div>
-                <p className="text-xs text-slate-500">Precisam de reposição urgente</p>
+                <div className="text-2xl font-bold text-foreground">{metrics.critical}</div>
+                <p className="text-xs text-muted-foreground">Precisam de reposição urgente</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-slate-200 shadow-sm">
+        <Card className="border-border shadow-sm bg-card">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Baixo estoque</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Baixo estoque</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
               <Package className="h-8 w-8 text-amber-500 mr-3" />
               <div>
-                <div className="text-2xl font-bold text-slate-900">{metrics.low}</div>
-                <p className="text-xs text-slate-500">Abaixo da margem mínima</p>
+                <div className="text-2xl font-bold text-foreground">{metrics.low}</div>
+                <p className="text-xs text-muted-foreground">Abaixo da margem mínima</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-slate-200 shadow-sm">
+        <Card className="border-border shadow-sm bg-card">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Itens cadastrados</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Itens cadastrados</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
-              <Package className="h-8 w-8 text-slate-500 mr-3" />
+              <Package className="h-8 w-8 text-muted-foreground mr-3" />
               <div>
-                <div className="text-2xl font-bold text-slate-900">{metrics.total}</div>
-                <p className="text-xs text-slate-500">Total de registros de estoque</p>
+                <div className="text-2xl font-bold text-foreground">{metrics.total}</div>
+                <p className="text-xs text-muted-foreground">Total de registros de estoque</p>
               </div>
             </div>
           </CardContent>
@@ -388,7 +388,7 @@ export default function InventoryPage() {
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="flex-none md:flex-1 flex flex-col min-h-0 w-full">
         <FilterBar
           left={
-            <TabsList className="bg-slate-100 p-1 w-full sm:w-auto flex overflow-x-auto">
+            <TabsList className="bg-muted p-1 w-full sm:w-auto flex overflow-x-auto">
               {categories.map((cat) => (
                 <TabsTrigger
                   key={cat.id}
@@ -406,7 +406,7 @@ export default function InventoryPage() {
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Buscar item..."
-                className="pl-10 bg-white w-full"
+                className="pl-10 bg-card w-full"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -415,11 +415,11 @@ export default function InventoryPage() {
           className="mb-4"
         />
 
-        <Card className="border-slate-200 shadow-sm flex-none md:flex-1 flex flex-col overflow-hidden">
+        <Card className="border-border shadow-sm flex-none md:flex-1 flex flex-col overflow-hidden">
           <CardContent className="p-0 flex-1 overflow-auto">
             {someSelected && (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-rose-100 bg-rose-50/70">
-                <div className="text-sm font-medium text-slate-800">{selectedItems.size} selecionado(s)</div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-primary/20 bg-primary/5">
+                <div className="text-sm font-medium text-foreground">{selectedItems.size} selecionado(s)</div>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
@@ -462,8 +462,8 @@ export default function InventoryPage() {
             )}
             <div className="min-w-[800px]">
               <Table>
-                <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
-                  <TableRow className="hover:bg-slate-50/50">
+                <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
+                  <TableRow className="hover:bg-muted/50">
                     <TableHead className="w-12">
                       <Checkbox
                         checked={headerChecked}
@@ -482,14 +482,14 @@ export default function InventoryPage() {
                 <TableBody>
                   {isLoading && (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-6 text-center text-slate-500">
+                      <TableCell colSpan={7} className="py-6 text-center text-muted-foreground">
                         Carregando estoque...
                       </TableCell>
                     </TableRow>
                   )}
                   {!isLoading && items.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-6 text-center text-slate-500">
+                      <TableCell colSpan={7} className="py-6 text-center text-muted-foreground">
                         Nenhum item encontrado.
                       </TableCell>
                     </TableRow>
@@ -499,7 +499,7 @@ export default function InventoryPage() {
                     return (
                       <TableRow
                         key={item.id}
-                        className="group hover:bg-slate-50/50 cursor-pointer"
+                        className="group hover:bg-muted/50 cursor-pointer"
                         onClick={(e) => {
                           if ((e.target as HTMLElement).closest('input')) return;
                           openEdit(item);
@@ -513,7 +513,7 @@ export default function InventoryPage() {
                           />
                         </TableCell>
                         <TableCell>
-                          <div className="font-medium text-slate-900">{item.name}</div>
+                          <div className="font-medium text-foreground">{item.name}</div>
                           {item.quantity <= item.min_stock && (
                             <div className="text-xs text-rose-600 flex items-center mt-1">
                               <AlertTriangle className="h-3 w-3 mr-1" />
@@ -526,7 +526,7 @@ export default function InventoryPage() {
                             {item.category || '—'}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-slate-600 text-sm">{item.location || '—'}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{item.location || '—'}</TableCell>
                         <TableCell>
                           <StatusMenu
                             status={status}
@@ -536,7 +536,7 @@ export default function InventoryPage() {
                           />
                         </TableCell>
                         <TableCell className="text-right font-mono font-medium">
-                          {item.quantity} <span className="text-slate-400 text-xs">{item.unit}</span>
+                          {item.quantity} <span className="text-muted-foreground text-xs">{item.unit}</span>
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>

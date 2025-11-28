@@ -58,12 +58,12 @@ import { deleteOrder } from '../services/ordersService';
 const ALL_STATUSES: OrderStatus[] = ORDER_STATUSES;
 
 const COLUMNS_CONFIG: Record<OrderStatus, { title: string; icon: any; color: string }> = {
-  'Aprovado': { title: 'Aprovado', icon: Clock, color: 'bg-blue-50 text-blue-700 border-blue-200' },
-  'Em Produção': { title: 'Em Produção', icon: Package, color: 'bg-amber-50 text-amber-700 border-amber-200' },
-  'Pronto para Entrega': { title: 'Pronto para Entrega', icon: Truck, color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
-  'Em Entrega': { title: 'Em Entrega', icon: Truck, color: 'bg-orange-50 text-orange-700 border-orange-200' },
-  'Entregue': { title: 'Entregue', icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  'Cancelado': { title: 'Cancelado', icon: AlertCircle, color: 'bg-rose-50 text-rose-700 border-rose-200' }
+  'Aprovado': { title: 'Aprovado', icon: Clock, color: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800' },
+  'Em Produção': { title: 'Em Produção', icon: Package, color: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800' },
+  'Pronto para Entrega': { title: 'Pronto para Entrega', icon: Truck, color: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800' },
+  'Em Entrega': { title: 'Em Entrega', icon: Truck, color: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800' },
+  'Entregue': { title: 'Entregue', icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800' },
+  'Cancelado': { title: 'Cancelado', icon: AlertCircle, color: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800' }
 };
 const ROLE_VISIBLE_STATUSES: Record<ProfileRole, OrderStatus[]> = {
   admin: ALL_STATUSES,
@@ -338,8 +338,8 @@ export default function OrdersPage() {
     <div className="space-y-8 fade-in h-[calc(100vh-8rem)] flex flex-col">
       <div className="flex-none flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Pedidos e Produção</h1>
-          <p className="text-sm sm:text-base text-slate-500 mt-1">Acompanhe o fluxo de produção da cozinha.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">Pedidos e Produção</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">Acompanhe o fluxo de produção da cozinha.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Button
@@ -416,8 +416,8 @@ export default function OrdersPage() {
           <Card className="h-full border-slate-200 shadow-sm overflow-hidden flex flex-col">
             <CardContent className="p-0 flex-1 overflow-auto">
               {someSelected && (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-rose-100 bg-rose-50/70">
-                  <div className="text-sm font-medium text-slate-800">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-primary/20 bg-primary/5">
+                  <div className="text-sm font-medium text-foreground">
                     {selectedOrders.size} selecionado(s)
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -462,7 +462,7 @@ export default function OrdersPage() {
               )}
               <div className="min-w-[800px]">
                 <Table>
-                  <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
+                  <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
                     <TableRow>
                       <TableHead className="w-12">
                         <Checkbox
@@ -483,7 +483,7 @@ export default function OrdersPage() {
                     {filteredOrders.map((order) => (
                       <TableRow
                         key={order.id}
-                        className="hover:bg-slate-50/50 cursor-pointer"
+                        className="hover:bg-muted/50 cursor-pointer"
                         onClick={(e) => {
                           if ((e.target as HTMLElement).closest('input')) return;
                           openDetails(order);
@@ -496,16 +496,16 @@ export default function OrdersPage() {
                             aria-label={`Selecionar pedido ${order.id}`}
                           />
                         </TableCell>
-                        <TableCell className="font-medium text-slate-900">#{order.id.slice(0, 8)}</TableCell>
+                        <TableCell className="font-medium text-foreground">#{order.id.slice(0, 8)}</TableCell>
                         <TableCell>
                           <div>
                             <div className="font-medium">{order.client?.name || 'Cliente sem nome'}</div>
-                            <div className="text-xs text-slate-500">{order.delivery_details ? 'Com detalhes' : 'Sem detalhes'}</div>
+                            <div className="text-xs text-muted-foreground">{order.delivery_details ? 'Com detalhes' : 'Sem detalhes'}</div>
                           </div>
                         </TableCell>
                         <TableCell>{order.delivery_date ? new Date(order.delivery_date).toLocaleDateString('pt-BR') : '—'}</TableCell>
                         <TableCell>
-                          <div className="max-w-[300px] truncate text-slate-600">
+                          <div className="max-w-[300px] truncate text-muted-foreground">
                             {order.items.map(i => i.product_name_copy).join(', ')}
                           </div>
                         </TableCell>
@@ -519,7 +519,7 @@ export default function OrdersPage() {
                         </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); openDetails(order); }}>
-                            <ArrowRight className="h-4 w-4 text-slate-400" />
+                            <ArrowRight className="h-4 w-4 text-muted-foreground" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -559,7 +559,7 @@ export default function OrdersPage() {
             order={selectedOrder}
             onDelete={isAdmin ? () => handleDeleteOrder(selectedOrder.id) : undefined}
             onEdit={isAdmin ? () => handleEditOrder(selectedOrder) : undefined}
-            onPrint={() => window.print()}
+            onPrint={() => window.open(`/print/order/${selectedOrder.id}`, '_blank')}
           />
         )}
       </AppDialog>
@@ -583,18 +583,18 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ status, orders, isLoading, 
   const Icon = config.icon;
 
   return (
-    <div className="flex-1 flex flex-col min-w-[280px] h-full bg-slate-100/50 rounded-xl border border-slate-200/60 p-3">
-      <div className={`flex items-center justify-between p-3 mb-3 rounded-lg border ${config.color} bg-white shadow-sm`}>
+    <div className="flex-1 flex flex-col min-w-[280px] h-full bg-muted/50 rounded-xl border border-border p-3">
+      <div className={`flex items-center justify-between p-3 mb-3 rounded-lg border ${config.color} shadow-sm`}>
         <div className="flex items-center font-semibold">
           <Icon className="mr-2 h-4 w-4" />
           {config.title}
         </div>
-        <Badge variant="secondary" className="bg-white/50 text-current border-0">
+        <Badge variant="secondary" className="bg-background/50 text-current border-0">
           {orders.length}
         </Badge>
       </div>
 
-      <ScrollArea className="flex-1 pr-3">
+      <ScrollArea className="flex-1 w-full h-full min-h-0 pr-3" hideScrollbar>
         <div ref={setNodeRef} className="space-y-3 min-h-[100px]">
           <SortableContext items={orders.map(o => o.id)} strategy={verticalListSortingStrategy}>
             {orders.map(order => (
@@ -602,7 +602,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ status, orders, isLoading, 
             ))}
           </SortableContext>
           {orders.length === 0 && !isLoading && (
-            <div className="text-center py-8 text-sm text-slate-400 border-2 border-dashed border-slate-200 rounded-lg">
+            <div className="text-center py-8 text-sm text-muted-foreground border-2 border-dashed border-border rounded-lg">
               Vazio
             </div>
           )}
@@ -635,11 +635,11 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, isOverlay, onClick }) => {
       style={style}
       {...attributes}
       {...listeners}
-      className={`bg-white p-4 rounded-lg border border-slate-200 shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing transition-all group relative ${isOverlay ? 'shadow-xl rotate-2 scale-105' : ''}`}
+      className={`bg-card p-4 rounded-lg border border-border shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing transition-all group relative ${isOverlay ? 'shadow-xl rotate-2 scale-105' : ''}`}
       onClick={onClick}
     >
       <div className="flex justify-between items-start mb-2">
-        <Badge variant="outline" className="text-xs font-normal text-slate-500 border-slate-200">
+        <Badge variant="outline" className="text-xs font-normal text-muted-foreground border-border">
           #{order.id.slice(0, 8)}
         </Badge>
         <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-2 opacity-0 group-hover:opacity-100">
@@ -647,20 +647,20 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, isOverlay, onClick }) => {
         </Button>
       </div>
 
-      <h4 className="font-semibold text-slate-900 mb-1">{order.client?.name || 'Cliente sem nome'}</h4>
-      <div className="flex items-center text-xs text-slate-500 mb-3">
+      <h4 className="font-semibold text-foreground mb-1">{order.client?.name || 'Cliente sem nome'}</h4>
+      <div className="flex items-center text-xs text-muted-foreground mb-3">
         <Clock className="h-3 w-3 mr-1" />
         {order.delivery_date ? new Date(order.delivery_date).toLocaleDateString('pt-BR') : 'Sem data'}
       </div>
 
       <div className="space-y-1">
         {order.items.slice(0, 2).map((item, idx) => (
-          <div key={idx} className="text-sm text-slate-600 bg-slate-50 px-2 py-1 rounded">
+          <div key={idx} className="text-sm text-muted-foreground bg-muted/50 px-2 py-1 rounded">
             {item.quantity}x {item.product_name_copy}
           </div>
         ))}
         {order.items.length > 2 && (
-          <div className="text-xs text-slate-400 pl-1">
+          <div className="text-xs text-muted-foreground pl-1">
             +{order.items.length - 2} outros itens
           </div>
         )}

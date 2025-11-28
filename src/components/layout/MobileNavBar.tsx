@@ -19,7 +19,7 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({ items }) => {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 px-6 py-3 backdrop-blur lg:hidden"
+      className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-background/95 px-6 py-3 backdrop-blur lg:hidden"
       aria-label="Navegação principal mobile"
     >
       <ul className="flex justify-between items-center">
@@ -33,8 +33,8 @@ export const MobileNavBar: React.FC<MobileNavBarProps> = ({ items }) => {
                 className={cn(
                   'flex items-center justify-center rounded-xl p-2 transition-colors',
                   active
-                    ? 'bg-rose-50 text-rose-600'
-                    : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600',
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
                 )}
                 title={item.label}
               >

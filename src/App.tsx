@@ -11,9 +11,10 @@ import ProductsPage from './features/ProductsPage';
 import ClientsPage from './features/ClientsPage';
 import InventoryPage from './features/InventoryPage';
 import PublicProposalPage from './features/PublicProposalPage';
+import OrderPrintPage from './features/orders/OrderPrintPage';
 import { useAuth } from './providers/AuthProvider';
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children, layout = true }: { children: React.ReactNode; layout?: boolean }) => {
   const { session, isLoading } = useAuth();
 
   if (isLoading) {
@@ -29,6 +30,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!session) {
     return <Navigate to="/" replace />;
+  }
+
+  if (!layout) {
+    return <>{children}</>;
   }
 
   return <AdminLayout>{children}</AdminLayout>;
@@ -50,6 +55,7 @@ const App: React.FC = () => {
         <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
         <Route path="/inventory" element={<ProtectedRoute><InventoryPage /></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} />
+        <Route path="/print/order/:id" element={<ProtectedRoute layout={false}><OrderPrintPage /></ProtectedRoute>} />
 
         {/* Redirect root to dashboard if authenticated, or login if not (handled by ProtectedRoute logic mostly, but explicit redirect helps) */}
         {/* Actually, since root is login, we might want a redirect if already logged in. 

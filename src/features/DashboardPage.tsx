@@ -74,14 +74,14 @@ export default function DashboardPage() {
       {/* Header & Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
-          <p className="text-slate-500 mt-1">Visão geral financeira e operacional do seu negócio.</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">Visão geral financeira e operacional do seu negócio.</p>
         </div>
 
         <div className="flex items-center space-x-2">
           <Select onValueChange={handlePeriodChange} defaultValue="7days">
-            <SelectTrigger className="w-[180px] bg-white">
-              <CalendarIcon className="mr-2 h-4 w-4 text-slate-400" />
+            <SelectTrigger className="w-[180px] bg-card">
+              <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
               <SelectValue placeholder="Período" />
             </SelectTrigger>
             <SelectContent>
@@ -92,8 +92,8 @@ export default function DashboardPage() {
             </SelectContent>
           </Select>
 
-          <Button variant="outline" size="icon" className="bg-white" onClick={() => void refetch()} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 text-slate-600 ${isLoading ? 'animate-spin' : ''}`} />
+          <Button variant="outline" size="icon" className="bg-card" onClick={() => void refetch()} disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 text-muted-foreground ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </div>
@@ -101,19 +101,19 @@ export default function DashboardPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
         {/* Receita */}
-        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <Card className="border-border shadow-sm hover:shadow-md transition-shadow bg-card">
           <CardContent className="p-6">
             <div className="flex items-center justify-between space-y-0 pb-2">
-              <p className="text-sm font-medium text-slate-500">Receita Total</p>
-              <div className="h-8 w-8 rounded-full bg-emerald-50 flex items-center justify-center">
-                <DollarSign className="h-4 w-4 text-emerald-600" />
+              <p className="text-sm font-medium text-muted-foreground">Receita Total</p>
+              <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center">
+                <DollarSign className="h-4 w-4 text-success" />
               </div>
             </div>
             <div className="flex items-baseline justify-between mt-3">
-              <h2 className="text-3xl font-bold text-slate-900">
+              <h2 className="text-3xl font-bold text-foreground">
                 {dashboardData ? currencyFormatter.format(dashboardData.totalRevenue) : '...'}
               </h2>
-              <span className="flex items-center text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
+              <span className="flex items-center text-xs font-medium text-success bg-success/10 px-2 py-1 rounded-full">
                 <ArrowUpRight className="h-3 w-3 mr-1" />
                 +12%
               </span>
@@ -122,20 +122,20 @@ export default function DashboardPage() {
         </Card>
 
         {/* Pedidos Entregues (was Despesas in prototype) */}
-        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <Card className="border-border shadow-sm hover:shadow-md transition-shadow bg-card">
           <CardContent className="p-6">
             <div className="flex items-center justify-between space-y-0 pb-2">
-              <p className="text-sm font-medium text-slate-500">Despesas</p>
-              <div className="h-8 w-8 rounded-full bg-rose-50 flex items-center justify-center">
-                <CreditCard className="h-4 w-4 text-rose-600" />
+              <p className="text-sm font-medium text-muted-foreground">Despesas</p>
+              <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center">
+                <CreditCard className="h-4 w-4 text-destructive" />
               </div>
             </div>
             <div className="flex items-baseline justify-between mt-3">
-              <h2 className="text-3xl font-bold text-slate-900">
+              <h2 className="text-3xl font-bold text-foreground">
                 {dashboardData ? currencyFormatter.format(dashboardData.expenses) : '...'}
               </h2>
               {/* Placeholder trend */}
-              <span className="flex items-center text-xs font-medium text-rose-600 bg-rose-50 px-2 py-1 rounded-full">
+              <span className="flex items-center text-xs font-medium text-destructive bg-destructive/10 px-2 py-1 rounded-full">
                 <ArrowUpRight className="h-3 w-3 mr-1" />
                 +4%
               </span>
@@ -144,19 +144,19 @@ export default function DashboardPage() {
         </Card>
 
         {/* Orçamentos Aprovados (was Lucro Líquido in prototype) */}
-        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <Card className="border-border shadow-sm hover:shadow-md transition-shadow bg-card">
           <CardContent className="p-6">
             <div className="flex items-center justify-between space-y-0 pb-2">
-              <p className="text-sm font-medium text-slate-500">Orçamentos Aprovados</p>
-              <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center">
-                <ClipboardList className="h-4 w-4 text-blue-600" />
+              <p className="text-sm font-medium text-muted-foreground">Orçamentos Aprovados</p>
+              <div className="h-8 w-8 rounded-full bg-info/10 flex items-center justify-center">
+                <ClipboardList className="h-4 w-4 text-info" />
               </div>
             </div>
             <div className="flex items-baseline justify-between mt-3">
-              <h2 className="text-3xl font-bold text-slate-900">
+              <h2 className="text-3xl font-bold text-foreground">
                 {dashboardData ? integerFormatter.format(dashboardData.approvedQuotes) : '...'}
               </h2>
-              <span className="flex items-center text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+              <span className="flex items-center text-xs font-medium text-info bg-info/10 px-2 py-1 rounded-full">
                 <ArrowUpRight className="h-3 w-3 mr-1" />
                 +8%
               </span>
@@ -165,21 +165,21 @@ export default function DashboardPage() {
         </Card>
 
         {/* Ticket Médio (Matches prototype) */}
-        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <Card className="border-border shadow-sm hover:shadow-md transition-shadow bg-card">
           <CardContent className="p-6">
             <div className="flex items-center justify-between space-y-0 pb-2">
-              <p className="text-sm font-medium text-slate-500">Ticket Médio</p>
-              <div className="h-8 w-8 rounded-full bg-amber-50 flex items-center justify-center">
-                <ShoppingBag className="h-4 w-4 text-amber-600" />
+              <p className="text-sm font-medium text-muted-foreground">Ticket Médio</p>
+              <div className="h-8 w-8 rounded-full bg-warning/10 flex items-center justify-center">
+                <ShoppingBag className="h-4 w-4 text-warning" />
               </div>
             </div>
             <div className="flex items-baseline justify-between mt-3">
-              <h2 className="text-3xl font-bold text-slate-900">
+              <h2 className="text-3xl font-bold text-foreground">
                 {dashboardData && dashboardData.deliveredOrders > 0
                   ? currencyFormatter.format(dashboardData.totalRevenue / dashboardData.deliveredOrders)
                   : currencyFormatter.format(0)}
               </h2>
-              <span className="flex items-center text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
+              <span className="flex items-center text-xs font-medium text-success bg-success/10 px-2 py-1 rounded-full">
                 <ArrowUpRight className="h-3 w-3 mr-1" />
                 +2%
               </span>
@@ -191,13 +191,13 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Chart Section */}
         {/* Chart Section */}
-        <Card className="lg:col-span-2 border-slate-200 shadow-sm">
+        <Card className="lg:col-span-2 border-border shadow-sm bg-card">
           <CardHeader>
             <CardTitle>Fluxo de Caixa</CardTitle>
             <CardDescription>Receitas vs Despesas no período</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[350px] w-full min-w-0" style={{ minHeight: '350px', minWidth: '100%' }}>
+            <div className="h-[350px] w-full min-w-0">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={dashboardData?.revenueTrend || []}
@@ -205,37 +205,37 @@ export default function DashboardPage() {
                 >
                   <defs>
                     <linearGradient id="colorReceitas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                      <stop offset="5%" stopColor="var(--success)" stopOpacity={0.1} />
+                      <stop offset="95%" stopColor="var(--success)" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="colorDespesas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.1} />
-                      <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                      <stop offset="5%" stopColor="var(--destructive)" stopOpacity={0.1} />
+                      <stop offset="95%" stopColor="var(--destructive)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                   <XAxis
                     dataKey="label"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: '#64748b', fontSize: 12 }}
+                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
                     dy={10}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: '#64748b', fontSize: 12 }}
+                    tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
                     tickFormatter={(value) => `R$${value / 1000}k`}
                   />
                   <Tooltip
                     formatter={(value: number) => currencyFormatter.format(value)}
-                    contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    itemStyle={{ fontSize: '12px' }}
+                    contentStyle={{ backgroundColor: 'var(--popover)', borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    itemStyle={{ fontSize: '12px', color: 'var(--popover-foreground)' }}
                   />
                   <Area
                     type="monotone"
                     dataKey="revenue"
-                    stroke="#10b981"
+                    stroke="var(--success)"
                     strokeWidth={2}
                     fillOpacity={1}
                     fill="url(#colorReceitas)"
@@ -244,7 +244,7 @@ export default function DashboardPage() {
                   <Area
                     type="monotone"
                     dataKey="expenses"
-                    stroke="#f43f5e"
+                    stroke="var(--destructive)"
                     strokeWidth={2}
                     fillOpacity={1}
                     fill="url(#colorDespesas)"
@@ -257,7 +257,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Recent Activity */}
-        <Card className="border-slate-200 shadow-sm">
+        <Card className="border-border shadow-sm bg-card">
           <CardHeader>
             <CardTitle>Atividade Recente</CardTitle>
             <CardDescription>Últimas movimentações</CardDescription>
@@ -267,21 +267,21 @@ export default function DashboardPage() {
               {dashboardData?.recentActivity?.map((item) => (
                 <div key={item.id} className="flex items-start justify-between group">
                   <div className="flex items-start space-x-4">
-                    <div className={`w-2 h-2 mt-2 rounded-full ${item.type === 'expense' ? 'bg-rose-500' :
-                      item.status === 'Entregue' ? 'bg-emerald-500' : 'bg-slate-300'
+                    <div className={`w-2 h-2 mt-2 rounded-full ${item.type === 'expense' ? 'bg-destructive' :
+                      item.status === 'Entregue' ? 'bg-success' : 'bg-muted'
                       }`} />
                     <div>
-                      <p className="text-sm font-medium text-slate-900">{item.label}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                      <p className="text-sm font-medium text-foreground">{item.label}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {item.date ? formatDate(item.date) : 'Data pendente'}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className={`block text-sm font-semibold ${item.type === 'expense' ? 'text-rose-600' : 'text-slate-900'}`}>
+                    <span className={`block text-sm font-semibold ${item.type === 'expense' ? 'text-destructive' : 'text-foreground'}`}>
                       {item.type === 'expense' ? '-' : '+'}{currencyFormatter.format(item.amount)}
                     </span>
-                    <span className="text-[10px] text-slate-400 uppercase">{item.status}</span>
+                    <span className="text-[10px] text-muted-foreground uppercase">{item.status}</span>
                   </div>
                 </div>
               ))}
@@ -289,7 +289,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-muted-foreground text-center py-4">Nenhuma atividade recente.</p>
               )}
             </div>
-            <Button variant="ghost" className="w-full mt-6 text-rose-600 hover:text-rose-700 hover:bg-rose-50">
+            <Button variant="ghost" className="w-full mt-6 text-destructive hover:text-destructive hover:bg-destructive/10">
               Ver todas as atividades
             </Button>
           </CardContent>

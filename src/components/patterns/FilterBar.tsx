@@ -33,7 +33,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         <div
           className={cn(
             'flex flex-wrap gap-2',
-            pillStyle && 'bg-slate-100 border border-slate-200 rounded-lg p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]',
+            pillStyle && 'bg-muted/50 border border-border rounded-lg p-1',
             leftWrapClassName,
           )}
         >

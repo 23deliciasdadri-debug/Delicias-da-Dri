@@ -109,7 +109,7 @@ const PublicQuotePreviewApp: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-rose-50 to-rose-100/70">
+    <div className="min-h-screen bg-background">
       <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-12">
         {/* Header Removed to match prototype */}
 
@@ -119,7 +119,7 @@ const PublicQuotePreviewApp: React.FC = () => {
             <p>Carregando orcamento...</p>
           </div>
         ) : error ? (
-          <div className="mx-auto max-w-lg rounded-2xl border border-rose-200 bg-card p-6 text-center shadow-sm">
+          <div className="mx-auto max-w-lg rounded-2xl border border-border bg-card p-6 text-center shadow-sm">
             <p className="text-lg font-semibold text-foreground mb-2">Ops!</p>
             <p className="text-sm text-muted-foreground">{error}</p>
           </div>
@@ -150,7 +150,7 @@ const PublicQuotePreviewApp: React.FC = () => {
                   </div>
                 )}
                 <Button
-                  className="w-full h-12 text-base bg-white hover:bg-slate-50 text-slate-700 border border-slate-300"
+                  className="w-full h-12 text-base bg-card hover:bg-muted/50 text-foreground border border-border"
                   variant="outline"
                   onClick={handleWhatsapp}
                 >

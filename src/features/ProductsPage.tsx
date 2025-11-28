@@ -391,8 +391,8 @@ export default function ProductsPage() {
     <div className="space-y-6 fade-in h-[calc(100vh-8rem)] flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-none">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Catálogo de Produtos</h1>
-          <p className="text-slate-500 mt-1">Gerencie os itens disponíveis para venda.</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Catálogo de Produtos</h1>
+          <p className="text-muted-foreground mt-1">Gerencie os itens disponíveis para venda.</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -435,10 +435,10 @@ export default function ProductsPage() {
         }
         right={
           <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar produtos..."
-              className="pl-10 bg-white"
+              className="pl-10 bg-card"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
@@ -453,16 +453,16 @@ export default function ProductsPage() {
             <Loader2 className="h-8 w-8 animate-spin text-rose-500" />
           </div>
         ) : productsData?.items.length === 0 ? (
-          <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-xl">
-            <Package className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-            <h3 className="text-lg font-medium text-slate-900">Nenhum produto encontrado</h3>
-            <p className="text-slate-500">Tente ajustar os filtros ou adicione um novo produto.</p>
+          <div className="text-center py-12 border-2 border-dashed border-border rounded-xl">
+            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+            <h3 className="text-lg font-medium text-foreground">Nenhum produto encontrado</h3>
+            <p className="text-muted-foreground">Tente ajustar os filtros ou adicione um novo produto.</p>
           </div>
         ) : view === 'gallery' ? (
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 pb-4">
             {productsData?.items.map((product) => (
-              <Card key={product.id} className="overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-all group h-fit">
-                <div className="aspect-square relative overflow-hidden bg-slate-100 cursor-pointer" onClick={() => handleEditProduct(product)}>
+              <Card key={product.id} className="overflow-hidden border-border shadow-sm hover:shadow-md transition-all group h-fit bg-card">
+                <div className="aspect-square relative overflow-hidden bg-muted/20 cursor-pointer" onClick={() => handleEditProduct(product)}>
                   {product.image_url ? (
                     <img
                       src={product.image_url}
@@ -470,7 +470,7 @@ export default function ProductsPage() {
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-300">
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground/50">
                       <ImageIcon className="h-12 w-12" />
                     </div>
                   )}
@@ -478,8 +478,8 @@ export default function ProductsPage() {
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="secondary" size="icon" className="h-8 w-8 bg-white/90 backdrop-blur-sm shadow-sm">
-                          <MoreHorizontal className="h-4 w-4 text-slate-700" />
+                        <Button variant="secondary" size="icon" className="h-8 w-8 bg-card/90 backdrop-blur-sm shadow-sm">
+                          <MoreHorizontal className="h-4 w-4 text-foreground" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -493,15 +493,15 @@ export default function ProductsPage() {
                     </DropdownMenu>
                   </div>
                   <div className="absolute bottom-2 left-2">
-                    <Badge className="bg-white/90 text-slate-800 hover:bg-white shadow-sm backdrop-blur-sm">
+                    <Badge className="bg-card/90 text-foreground hover:bg-card shadow-sm backdrop-blur-sm">
                       {product.product_type === 'COMPONENTE_BOLO' ? product.component_category : 'Menu'}
                     </Badge>
                   </div>
                 </div>
                 <CardContent className="p-4" onClick={() => handleEditProduct(product)}>
-                  <h3 className="font-semibold text-slate-900 truncate cursor-pointer hover:text-rose-600 transition-colors" title={product.name}>{product.name}</h3>
-                  <div className="flex items-baseline mt-1 text-slate-500 text-sm">
-                    <span className="text-lg font-bold text-rose-600 mr-1">
+                  <h3 className="font-semibold text-foreground truncate cursor-pointer hover:text-primary transition-colors" title={product.name}>{product.name}</h3>
+                  <div className="flex items-baseline mt-1 text-muted-foreground text-sm">
+                    <span className="text-lg font-bold text-primary mr-1">
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
                     </span>
                     / {product.unit_type}
@@ -511,10 +511,10 @@ export default function ProductsPage() {
             ))}
           </div>
         ) : (
-          <Card className="border-slate-200 shadow-sm">
+          <Card className="border-border shadow-sm bg-card">
             {someSelected && (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-rose-100 bg-rose-50/70">
-                <div className="text-sm font-medium text-slate-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-primary/20 bg-primary/5">
+                <div className="text-sm font-medium text-foreground">
                   {selectedProducts.size} selecionado(s)
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -533,7 +533,7 @@ export default function ProductsPage() {
             <div className="min-w-[800px]">
               <Table>
                 <TableHeader>
-                  <TableRow className="hover:bg-slate-50/50">
+                  <TableRow className="hover:bg-muted/50">
                     <TableHead className="w-12">
                       <Checkbox
                         checked={headerChecked}
@@ -553,7 +553,7 @@ export default function ProductsPage() {
                   {products.map((product) => (
                     <TableRow
                       key={product.id}
-                      className="hover:bg-slate-50/50 cursor-pointer group"
+                      className="hover:bg-muted/50 cursor-pointer group"
                       onClick={(e) => {
                         if ((e.target as HTMLElement).closest('input')) return;
                         handleEditProduct(product);
@@ -567,24 +567,24 @@ export default function ProductsPage() {
                         />
                       </TableCell>
                       <TableCell>
-                        <div className="h-10 w-10 rounded bg-slate-100 overflow-hidden">
+                        <div className="h-10 w-10 rounded bg-muted/50 overflow-hidden">
                           {product.image_url ? (
                             <img src={product.image_url} alt="" className="h-full w-full object-cover" />
                           ) : (
-                            <div className="h-full w-full flex items-center justify-center text-slate-300">
+                            <div className="h-full w-full flex items-center justify-center text-muted-foreground/50">
                               <ImageIcon className="h-4 w-4" />
                             </div>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium text-slate-900">{product.name}</TableCell>
+                      <TableCell className="font-medium text-foreground">{product.name}</TableCell>
                       <TableCell>
                         <Badge variant="outline">{product.product_type === 'COMPONENTE_BOLO' ? product.component_category : 'Menu'}</Badge>
                       </TableCell>
-                      <TableCell className="text-slate-900 font-medium">
+                      <TableCell className="text-foreground font-medium">
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
                       </TableCell>
-                      <TableCell className="text-slate-500">{product.unit_type}</TableCell>
+                      <TableCell className="text-muted-foreground">{product.unit_type}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

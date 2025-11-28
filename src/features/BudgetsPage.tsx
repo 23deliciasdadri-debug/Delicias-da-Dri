@@ -62,9 +62,9 @@ import { PaginatedList, EmptyState, AppDialog, FilterBar } from '../components/p
 import { ViewSwitcher, type ViewType } from '../components/ViewSwitcher';
 
 const kanbanColumnsConfig = [
-  { id: 'Pendente', label: 'Pendente / Enviado', color: 'bg-amber-50 border-amber-200 text-amber-700' },
-  { id: 'Aprovado', label: 'Aprovado', color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
-  { id: 'Recusado', label: 'Rejeitado / Perdido', color: 'bg-rose-50 border-rose-200 text-rose-700' },
+  { id: 'Pendente', label: 'Pendente / Enviado', color: 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400' },
+  { id: 'Aprovado', label: 'Aprovado', color: 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400' },
+  { id: 'Recusado', label: 'Rejeitado / Perdido', color: 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-400' },
 ];
 
 const ALL_STATUSES: QuoteStatus[] = QUOTE_STATUSES;
@@ -455,8 +455,8 @@ export default function BudgetsPage() {
     <div className="space-y-6 fade-in h-[calc(100vh-8rem)] flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-none">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Orçamentos</h1>
-          <p className="text-slate-500 mt-1">Gerencie suas propostas comerciais e acompanhe o status.</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Orçamentos</h1>
+          <p className="text-muted-foreground mt-1">Gerencie suas propostas comerciais e acompanhe o status.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -477,7 +477,7 @@ export default function BudgetsPage() {
             <Button
               size="sm"
               variant={statusFilter === 'ALL' ? 'secondary' : 'ghost'}
-              className={`h-9 px-3 text-sm ${statusFilter === 'ALL' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-600'}`}
+              className={`h-9 px-3 text-sm ${statusFilter === 'ALL' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground'}`}
               onClick={() => setStatusFilter('ALL')}
             >
               Todos
@@ -485,7 +485,7 @@ export default function BudgetsPage() {
             <Button
               size="sm"
               variant={statusFilter === 'Pendente' ? 'secondary' : 'ghost'}
-              className={`h-9 px-3 text-sm ${statusFilter === 'Pendente' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-600'}`}
+              className={`h-9 px-3 text-sm ${statusFilter === 'Pendente' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground'}`}
               onClick={() => setStatusFilter('Pendente')}
             >
               Pendente
@@ -493,7 +493,7 @@ export default function BudgetsPage() {
             <Button
               size="sm"
               variant={statusFilter === 'Aprovado' ? 'secondary' : 'ghost'}
-              className={`h-9 px-3 text-sm ${statusFilter === 'Aprovado' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-600'}`}
+              className={`h-9 px-3 text-sm ${statusFilter === 'Aprovado' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground'}`}
               onClick={() => setStatusFilter('Aprovado')}
             >
               Aprovado
@@ -501,7 +501,7 @@ export default function BudgetsPage() {
             <Button
               size="sm"
               variant={statusFilter === 'Recusado' ? 'secondary' : 'ghost'}
-              className={`h-9 px-3 text-sm ${statusFilter === 'Recusado' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-600'}`}
+              className={`h-9 px-3 text-sm ${statusFilter === 'Recusado' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground'}`}
               onClick={() => setStatusFilter('Recusado')}
             >
               Recusado
@@ -513,7 +513,7 @@ export default function BudgetsPage() {
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <Input
               placeholder="Buscar cliente ou evento..."
-              className="pl-10 bg-white"
+              className="pl-10 bg-card"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
@@ -536,11 +536,11 @@ export default function BudgetsPage() {
         ) : (
           <>
             {view === 'list' && (
-              <Card className="border-slate-200 shadow-sm h-full flex flex-col overflow-hidden">
+              <Card className="border-border shadow-sm h-full flex flex-col overflow-hidden">
                 <CardContent className="p-0 flex-1 overflow-auto">
                   {someSelected && (
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-rose-100 bg-rose-50/70">
-                      <div className="text-sm font-medium text-slate-800">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-primary/20 bg-primary/5">
+                      <div className="text-sm font-medium text-foreground">
                         {selectedQuotes.size} selecionado(s)
                       </div>
                       <div className="flex flex-wrap gap-2">
@@ -585,8 +585,8 @@ export default function BudgetsPage() {
                   )}
                   <div className="min-w-[800px]">
                     <Table>
-                      <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
-                        <TableRow className="hover:bg-slate-50/50">
+                      <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
+                        <TableRow className="hover:bg-muted/50">
                           <TableHead className="w-12">
                             <Checkbox
                               checked={headerChecked}
@@ -607,7 +607,7 @@ export default function BudgetsPage() {
                         {quotesData?.items.map((budget) => (
                           <TableRow
                             key={budget.id}
-                            className="group hover:bg-slate-50/50 cursor-pointer"
+                            className="group hover:bg-muted/50 cursor-pointer"
                             onClick={(e) => {
                               if ((e.target as HTMLElement).closest('input')) return;
                               void handleOpenDetails(budget.id);
@@ -620,11 +620,11 @@ export default function BudgetsPage() {
                                 aria-label={`Selecionar orçamento ${budget.id}`}
                               />
                             </TableCell>
-                            <TableCell className="font-medium text-slate-900">#{budget.id.slice(0, 8)}</TableCell>
+                            <TableCell className="font-medium text-foreground">#{budget.id.slice(0, 8)}</TableCell>
                             <TableCell>
                               <div className="flex flex-col">
                                 <span className="font-medium">{budget.client?.name}</span>
-                                <span className="text-xs text-slate-500">{budget.client?.phone}</span>
+                                <span className="text-xs text-muted-foreground">{budget.client?.phone}</span>
                               </div>
                             </TableCell>
                             <TableCell>{budget.event_type || '—'}</TableCell>
@@ -677,7 +677,7 @@ export default function BudgetsPage() {
                       </TableBody>
                     </Table>
                   </div>
-                  <div className="p-4 border-t border-slate-100">
+                  <div className="p-4 border-t border-border">
                     <PaginatedList
                       page={page}
                       totalPages={totalPages}
@@ -694,13 +694,13 @@ export default function BudgetsPage() {
               <div className="h-full overflow-auto pr-2 pb-4">
                 <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
                   {quotesData?.items.map((budget) => (
-                    <Card key={budget.id} className="hover:shadow-md transition-shadow cursor-pointer group" onClick={() => handleOpenDetails(budget.id)}>
+                    <Card key={budget.id} className="hover:shadow-md transition-shadow cursor-pointer group border-border bg-card" onClick={() => handleOpenDetails(budget.id)}>
                       <CardHeader className="pb-2 relative">
                         <div className="flex justify-between items-start">
-                          <Badge variant="outline" className="mb-2">#{budget.id.slice(0, 8)}</Badge>
+                          <Badge variant="outline" className="mb-2 border-border text-muted-foreground">#{budget.id.slice(0, 8)}</Badge>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 -mr-3 -mt-2 text-slate-400" onClick={(e) => e.stopPropagation()}>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 -mr-3 -mt-2 text-muted-foreground" onClick={(e) => e.stopPropagation()}>
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -715,7 +715,7 @@ export default function BudgetsPage() {
                       </CardHeader>
                       <CardContent>
                         <div className="flex items-center justify-between mt-2 mb-4">
-                          <div className="flex items-center text-sm text-slate-500">
+                          <div className="flex items-center text-sm text-muted-foreground">
                             <Clock className="h-3 w-3 mr-1" />
                             {budget.event_date ? new Date(budget.event_date).toLocaleDateString('pt-BR') : '-'}
                           </div>
@@ -726,9 +726,9 @@ export default function BudgetsPage() {
                             disabled={!isAdmin}
                           />
                         </div>
-                        <div className="pt-4 border-t border-slate-100 flex items-baseline justify-between">
-                          <span className="text-sm text-slate-500">Total</span>
-                          <span className="text-xl font-bold text-slate-900">
+                        <div className="pt-4 border-t border-border flex items-baseline justify-between">
+                          <span className="text-sm text-muted-foreground">Total</span>
+                          <span className="text-xl font-bold text-foreground">
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(budget.total_amount)}
                           </span>
                         </div>
@@ -857,7 +857,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, label, color, quotes, o
         {label}
         <Badge variant="secondary">{quotes.length}</Badge>
       </div>
-      <ScrollArea className="flex-1 pr-3">
+      <ScrollArea className="flex-1 w-full h-full min-h-0 pr-3" hideScrollbar>
         <div ref={setNodeRef} className="space-y-3 min-h-[100px]">
           <SortableContext items={quotes.map(q => q.id)} strategy={verticalListSortingStrategy}>
             {quotes.map(budget => (

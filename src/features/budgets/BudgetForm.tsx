@@ -268,12 +268,12 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
       <div className="flex items-center mb-8">
         {onBack && (
           <Button variant="ghost" size="icon" onClick={onBack} className="mr-4">
-            <ArrowLeft className="h-5 w-5 text-slate-500" />
+            <ArrowLeft className="h-5 w-5 text-muted-foreground" />
           </Button>
         )}
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{title || (mode === 'edit' ? 'Editar Orçamento' : 'Novo Orçamento')}</h1>
-          <p className="text-slate-500">{subtitle || (mode === 'edit' ? 'Atualize os dados da proposta.' : 'Preencha os dados para gerar uma nova proposta.')}</p>
+          <h1 className="text-2xl font-bold text-foreground">{title || (mode === 'edit' ? 'Editar Orçamento' : 'Novo Orçamento')}</h1>
+          <p className="text-muted-foreground">{subtitle || (mode === 'edit' ? 'Atualize os dados da proposta.' : 'Preencha os dados para gerar uma nova proposta.')}</p>
         </div>
       </div>
 
@@ -283,7 +283,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
           <div className="lg:col-span-2 space-y-6">
 
             {/* Client & Event Details */}
-            <Card className="border-slate-200 shadow-sm">
+            <Card className="border-border shadow-sm">
               <CardHeader>
                 <CardTitle className="text-lg">Informações do Cliente</CardTitle>
               </CardHeader>
@@ -324,7 +324,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
                   <div className="space-y-2">
                     <Label>Data do Evento</Label>
                     <div className="relative">
-                      <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                      <CalendarIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input {...budgetForm.register('event_date')} type="date" className="pl-10" />
                     </div>
                   </div>
@@ -342,7 +342,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
             </Card>
 
             {/* Items Builder */}
-            <Card className="border-slate-200 shadow-sm">
+            <Card className="border-border shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">Itens da Proposta</CardTitle>
               </CardHeader>
@@ -355,14 +355,14 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
                     const lineTotal = (currentItem?.quantity || 0) * (currentItem?.unitPrice || 0);
 
                     return (
-                      <div key={field.id} className="grid grid-cols-12 gap-3 items-end p-3 rounded-lg border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                      <div key={field.id} className="grid grid-cols-12 gap-3 items-end p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/30 transition-colors">
                         <div className="col-span-12 md:col-span-5 space-y-1.5">
-                          <Label className="text-xs text-slate-500">Produto</Label>
+                          <Label className="text-xs text-muted-foreground">Produto</Label>
                           <Select
                             value={currentItem?.productId || 'custom'}
                             onValueChange={(val) => handleProductSelect(index, val === 'custom' ? '' : val)}
                           >
-                            <SelectTrigger className="bg-white">
+                            <SelectTrigger className="bg-card">
                               <SelectValue placeholder="Selecione..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -376,34 +376,34 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
                           <Input
                             {...budgetForm.register(`items.${index}.productName`)}
                             placeholder="Nome do item"
-                            className="mt-1 bg-white"
+                            className="mt-1 bg-card"
                           />
                         </div>
 
                         <div className="col-span-4 md:col-span-2 space-y-1.5">
-                          <Label className="text-xs text-slate-500">Qtd</Label>
+                          <Label className="text-xs text-muted-foreground">Qtd</Label>
                           <Input
                             type="number"
                             min="1"
                             {...budgetForm.register(`items.${index}.quantity`, { valueAsNumber: true })}
-                            className="bg-white"
+                            className="bg-card"
                           />
                         </div>
 
                         <div className="col-span-4 md:col-span-2 space-y-1.5">
-                          <Label className="text-xs text-slate-500">Valor Un.</Label>
+                          <Label className="text-xs text-muted-foreground">Valor Un.</Label>
                           <Input
                             type="number"
                             min="0"
                             step="0.01"
                             {...budgetForm.register(`items.${index}.unitPrice`, { valueAsNumber: true })}
-                            className="bg-white"
+                            className="bg-card"
                           />
                         </div>
 
                         <div className="col-span-3 md:col-span-2 space-y-1.5">
-                          <Label className="text-xs text-slate-500">Subtotal</Label>
-                          <div className="h-10 flex items-center font-medium text-slate-700">
+                          <Label className="text-xs text-muted-foreground">Subtotal</Label>
+                          <div className="h-10 flex items-center font-medium text-foreground">
                             {lineTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                           </div>
                         </div>
@@ -414,7 +414,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
                             variant="ghost"
                             size="icon"
                             onClick={() => handleRemoveItem(index)}
-                            className="text-slate-400 hover:text-rose-600"
+                            className="text-muted-foreground hover:text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -428,7 +428,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
                 )}
                 <div className="mt-6 flex flex-col md:flex-row md:items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <Label className="text-xs text-slate-500">Quantidade</Label>
+                    <Label className="text-xs text-muted-foreground">Quantidade</Label>
                     <Input
                       type="number"
                       min={1}
@@ -455,16 +455,16 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
           {/* Sidebar Summary */}
           <div className="lg:col-span-1">
             <div className="sticky top-8 space-y-6">
-              <Card className="border-slate-200 shadow-md bg-white overflow-hidden">
+              <Card className="border-border shadow-md bg-card overflow-hidden">
                 <CardHeader>
                   <CardTitle className="text-lg">Resumo da Proposta</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex justify-between text-sm text-slate-600">
+                  <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Itens adicionados</span>
                     <span className="font-medium">{fields.length}</span>
                   </div>
-                  <div className="flex justify-between text-sm text-slate-600">
+                  <div className="flex justify-between text-sm text-muted-foreground">
                     <span>Cliente</span>
                     <span className="font-medium truncate max-w-[150px]">
                       {allClients.find(c => c.id === budgetForm.watch('client_id'))?.name || '-'}
@@ -474,8 +474,8 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
                   <Separator />
 
                   <div className="flex justify-between items-end pt-2">
-                    <span className="font-semibold text-slate-900">Total Estimado</span>
-                    <span className="text-2xl font-bold text-slate-900">
+                    <span className="font-semibold text-foreground">Total Estimado</span>
+                    <span className="text-2xl font-bold text-foreground">
                       {totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </span>
                   </div>
@@ -487,10 +487,10 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
                     </Alert>
                   )}
                 </CardContent>
-                <CardFooter className="flex flex-col gap-3 bg-slate-50/50 p-6">
+                <CardFooter className="flex flex-col gap-3 bg-muted/50 p-6">
                   <Button
                     type="submit"
-                    className="w-full bg-rose-500 hover:bg-rose-600 h-11 text-lg"
+                    className="w-full bg-primary hover:bg-primary/90 h-11 text-lg text-primary-foreground"
                     disabled={activeMutation.isMutating || isLoadingOptions}
                   >
                     {activeMutation.isMutating ? (
@@ -501,7 +501,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
                     {mode === 'edit' ? 'Salvar Alterações' : 'Salvar Orçamento'}
                   </Button>
                   {mode === 'edit' && (
-                    <Button type="button" variant="outline" className="w-full border-slate-200 text-slate-700 hover:bg-slate-50">
+                    <Button type="button" variant="outline" className="w-full border-border text-foreground hover:bg-muted/50">
                       <Share2 className="mr-2 h-4 w-4" />
                       Salvar e Compartilhar
                     </Button>

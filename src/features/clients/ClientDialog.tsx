@@ -167,18 +167,18 @@ export function ClientDialog({
       title={client ? null : (isEditing ? 'Novo Cliente' : 'Cliente')}
       description={client ? null : (isEditing ? 'Edite os dados do cliente abaixo.' : 'Visualize os dados do cliente.')}
       className={client ? undefined : "px-8 py-6"}
-      contentClassName="p-0 !overflow-hidden !flex !flex-col h-[85vh] sm:h-[720px] bg-white gap-0"
+      contentClassName="p-0 !overflow-hidden !flex !flex-col h-[85vh] sm:h-[720px] bg-background gap-0"
     >
       {client && (
-        <div className="px-8 py-6 bg-gradient-to-b from-white to-slate-50 border-b border-slate-200 shadow-sm">
+        <div className="px-8 py-6 bg-muted/20 border-b border-border shadow-sm">
           <div className="flex items-start gap-4 max-w-6xl mx-auto w-full">
-            <Avatar className="h-16 w-16 border-2 border-white shadow-sm">
+            <Avatar className="h-16 w-16 border-2 border-background shadow-sm">
               <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${client.name}`} />
               <AvatarFallback>{client.name.substring(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
             <div className="flex-1 pt-1">
-              <h2 className="text-2xl font-bold text-slate-900">{client.name}</h2>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-slate-500">
+              <h2 className="text-2xl font-bold text-foreground">{client.name}</h2>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
                 <span className="flex items-center">
                   <Mail className="w-3 h-3 mr-1" /> {client.email || 'Sem email'}
                 </span>
@@ -196,7 +196,7 @@ export function ClientDialog({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
                   onClick={() => onDelete(client)}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -209,19 +209,19 @@ export function ClientDialog({
 
       <FormProvider {...form}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden min-h-0">
-          <div className="px-8 pt-3 border-b border-slate-200 bg-white">
+          <div className="px-8 pt-3 border-b border-border bg-background">
             <div className="max-w-6xl mx-auto">
-              <TabsList className="bg-slate-100 h-11 px-1 py-1 rounded-full border border-slate-200">
+              <TabsList className="bg-muted h-11 px-1 py-1 rounded-full border border-border">
                 <TabsTrigger
                   value="profile"
-                  className="data-[state=active]:bg-white data-[state=active]:text-rose-600 data-[state=active]:shadow-sm rounded-full px-4 py-2 text-sm font-medium"
+                  className="data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-full px-4 py-2 text-sm font-medium"
                 >
                   Perfil
                 </TabsTrigger>
                 <TabsTrigger
                   value="orders"
                   disabled={isEditing}
-                  className="data-[state=active]:bg-white data-[state=active]:text-rose-600 data-[state=active]:shadow-sm rounded-full px-4 py-2 text-sm font-medium disabled:opacity-50"
+                  className="data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-full px-4 py-2 text-sm font-medium disabled:opacity-50"
                 >
                   Historico de Pedidos
                 </TabsTrigger>
@@ -229,17 +229,17 @@ export function ClientDialog({
             </div>
           </div>
 
-          <ScrollArea className="flex-1 bg-slate-50 min-h-0">
+          <ScrollArea className="flex-1 bg-muted/10 min-h-0">
             <div className="max-w-6xl mx-auto px-8 py-8 space-y-8">
               <TabsContent value="profile" className="mt-0 space-y-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-slate-900 flex items-center">
-                        <User className="w-4 h-4 mr-2 text-rose-500" /> Dados de Contato
+                      <h3 className="font-semibold text-foreground flex items-center">
+                        <User className="w-4 h-4 mr-2 text-primary" /> Dados de Contato
                       </h3>
                       {isEditing && (
-                        <span className="text-xs text-slate-500">Campos obrigatorios para salvar</span>
+                        <span className="text-xs text-muted-foreground">Campos obrigatorios para salvar</span>
                       )}
                     </div>
                     {isEditing ? (
@@ -263,16 +263,16 @@ export function ClientDialog({
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div className="space-y-1">
-                          <p className="text-slate-500 text-xs">Nome</p>
-                          <p className="font-medium text-slate-900">{client?.name}</p>
+                          <p className="text-muted-foreground text-xs">Nome</p>
+                          <p className="font-medium text-foreground">{client?.name}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-slate-500 text-xs">E-mail</p>
-                          <p className="font-medium text-slate-900">{client?.email || 'Sem email'}</p>
+                          <p className="text-muted-foreground text-xs">E-mail</p>
+                          <p className="font-medium text-foreground">{client?.email || 'Sem email'}</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-slate-500 text-xs">Telefone / WhatsApp</p>
-                          <p className="font-medium text-slate-900">{client?.phone}</p>
+                          <p className="text-muted-foreground text-xs">Telefone / WhatsApp</p>
+                          <p className="font-medium text-foreground">{client?.phone}</p>
                         </div>
                       </div>
                     )}
@@ -282,8 +282,8 @@ export function ClientDialog({
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                      <h3 className="font-semibold flex items-center text-slate-900">
-                        <User className="w-4 h-4 mr-2 text-rose-500" /> Dados Pessoais
+                      <h3 className="font-semibold flex items-center text-foreground">
+                        <User className="w-4 h-4 mr-2 text-primary" /> Dados Pessoais
                       </h3>
                       {isEditing ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -301,19 +301,19 @@ export function ClientDialog({
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                           <div>
-                            <label className="text-slate-500 block text-xs">Data de Nascimento</label>
+                            <label className="text-muted-foreground block text-xs">Data de Nascimento</label>
                             <span className="font-medium">{client?.birth_date || 'Nao informado'}</span>
                           </div>
                           <div>
-                            <label className="text-slate-500 block text-xs">CPF/CNPJ</label>
+                            <label className="text-muted-foreground block text-xs">CPF/CNPJ</label>
                             <span className="font-medium">{client?.document_id || 'Nao informado'}</span>
                           </div>
                         </div>
                       )}
                     </div>
                     <div className="space-y-4">
-                      <h3 className="font-semibold flex items-center text-slate-900">
-                        <MapPin className="w-4 h-4 mr-2 text-rose-500" /> Endereco
+                      <h3 className="font-semibold flex items-center text-foreground">
+                        <MapPin className="w-4 h-4 mr-2 text-primary" /> Endereco
                       </h3>
                       {isEditing ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -348,7 +348,7 @@ export function ClientDialog({
                           <p className="font-medium">
                             {client?.address_line1 || 'Sem endereco cadastrado'}
                           </p>
-                          <p className="text-slate-500">
+                          <p className="text-muted-foreground">
                             {[client?.address_line2, client?.city, client?.state, client?.postal_code]
                               .filter(Boolean)
                               .join(' • ') || '-'}
@@ -361,20 +361,20 @@ export function ClientDialog({
                   <Separator />
 
                   <div className="space-y-4">
-                    <h3 className="font-semibold flex items-center text-slate-900">
-                      <Cake className="w-4 h-4 mr-2 text-rose-500" /> Metricas
+                    <h3 className="font-semibold flex items-center text-foreground">
+                      <Cake className="w-4 h-4 mr-2 text-primary" /> Metricas
                     </h3>
                     <div className="grid grid-cols-3 gap-4">
-                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                        <div className="text-xs text-slate-500">Total Gasto</div>
+                      <div className="bg-muted/20 p-3 rounded-lg border border-border">
+                        <div className="text-xs text-muted-foreground">Total Gasto</div>
                         <div className="text-lg font-bold text-emerald-600">R$ 0,00</div>
                       </div>
-                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                        <div className="text-xs text-slate-500">Pedidos</div>
-                        <div className="text-lg font-bold text-slate-700">0</div>
+                      <div className="bg-muted/20 p-3 rounded-lg border border-border">
+                        <div className="text-xs text-muted-foreground">Pedidos</div>
+                        <div className="text-lg font-bold text-foreground">0</div>
                       </div>
-                      <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                        <div className="text-xs text-slate-500">Ticket Medio</div>
+                      <div className="bg-muted/20 p-3 rounded-lg border border-border">
+                        <div className="text-xs text-muted-foreground">Ticket Medio</div>
                         <div className="text-lg font-bold text-blue-600">R$ 0,00</div>
                       </div>
                     </div>
@@ -383,8 +383,8 @@ export function ClientDialog({
                   <Separator />
 
                   <div className="space-y-3">
-                    <h3 className="font-semibold text-slate-900 flex items-center">
-                      <User className="w-4 h-4 mr-2 text-rose-500" /> Observacoes
+                    <h3 className="font-semibold text-foreground flex items-center">
+                      <User className="w-4 h-4 mr-2 text-primary" /> Observacoes
                     </h3>
                     {isEditing ? (
                       <FormField
@@ -399,12 +399,12 @@ export function ClientDialog({
                         )}
                       />
                     ) : (
-                      <p className="text-sm text-slate-700">{client?.notes || 'Sem anotacoes'}</p>
+                      <p className="text-sm text-foreground">{client?.notes || 'Sem anotacoes'}</p>
                     )}
                   </div>
 
                   {isEditing && (
-                    <div className="sticky bottom-0 bg-slate-50 pt-4 pb-2 border-t border-slate-200 mt-8 -mx-8 px-8 flex justify-end gap-2">
+                    <div className="sticky bottom-0 bg-background pt-4 pb-2 border-t border-border mt-8 -mx-8 px-8 flex justify-end gap-2">
                       <Button type="button" variant="outline" onClick={handleCancelEdit}>
                         Cancelar
                       </Button>
@@ -419,7 +419,7 @@ export function ClientDialog({
 
               <TabsContent value="orders" className="mt-0">
                 <div className="space-y-4">
-                  <p className="text-sm text-slate-500 text-center py-8">
+                  <p className="text-sm text-muted-foreground text-center py-8">
                     {isEditing ? 'Conclua a edicao para ver pedidos.' : 'Nenhum pedido encontrado para este cliente.'}
                   </p>
                 </div>

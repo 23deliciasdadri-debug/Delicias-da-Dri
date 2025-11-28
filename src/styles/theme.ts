@@ -46,13 +46,12 @@ export const theme = {
     base: 'var(--radius)',
   },
   gradients: {
-    primary: 'linear-gradient(135deg, rgb(244 63 94) 0%, rgb(236 72 153) 50%, rgb(251 146 60) 100%)',
-    primarySoft:
-      'linear-gradient(135deg, rgba(244, 63, 94, 0.1) 0%, rgba(251, 146, 60, 0.1) 100%)',
-    accent: 'linear-gradient(135deg, rgb(251 146 60) 0%, rgb(245 158 11) 100%)',
-    success: 'linear-gradient(135deg, rgb(34 197 94) 0%, rgb(22 163 74) 100%)',
-    info: 'linear-gradient(135deg, rgb(59 130 246) 0%, rgb(37 99 235) 100%)',
-    warning: 'linear-gradient(135deg, rgb(245 158 11) 0%, rgb(234 88 12) 100%)',
+    primary: 'var(--gradient-primary)',
+    primarySoft: 'var(--gradient-primary-soft)',
+    accent: 'var(--gradient-accent)',
+    success: 'var(--gradient-success)',
+    info: 'var(--gradient-info)',
+    warning: 'var(--gradient-warning)',
   },
   shadows: {
     glowRose: '0 0 20px rgba(244, 63, 94, 0.3)',
