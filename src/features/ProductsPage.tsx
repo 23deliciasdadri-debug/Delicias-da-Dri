@@ -1,7 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { useSearchParams } from 'react-router-dom';
-import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Plus,
@@ -11,7 +10,9 @@ import {
   Trash,
   ImageIcon,
   Package,
-  Loader2
+  Loader2,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 import { Button } from '../components/ui/button';
@@ -33,7 +34,7 @@ import { toast } from 'sonner';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { useSupabaseMutation } from '../hooks/useSupabaseMutation';
 import { useAuth } from '../providers/AuthProvider';
-import type { ComponentCategory, Product, ProductType } from '../types';
+import type { Product } from '../types';
 import {
   PRODUCTS_PAGE_SIZE,
   createProduct,
@@ -52,72 +53,22 @@ import { FormField, FormSection, ImagePicker, AppDialog, DialogFooter, FilterBar
 import type { ImagePickerItem } from '../components/patterns/ImagePicker';
 import { ViewSwitcher, type ViewType } from '../components/ViewSwitcher';
 
-// --- Logic & Helpers (Preserved) ---
-
-type ProductTypeFilter = 'ALL' | ProductType;
-type ComponentCategoryFilter = 'ALL' | string;
-
-interface MediaDraftItem {
-  id: string;
-  mediaId?: number;
-  storagePath?: string;
-  url: string;
-  file?: File;
-  status?: 'idle' | 'pending' | 'uploading' | 'error';
-}
-
-const createLocalId = () =>
-  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-    ? crypto.randomUUID()
-    : Math.random().toString(36).slice(2, 10);
-
-const releaseObjectUrl = (url?: string) => {
-  if (url && url.startsWith('blob:')) {
-    URL.revokeObjectURL(url);
-  }
-};
-
-const parsePriceInput = (value: string) => {
-  if (!value) return 0;
-  const normalized = Number(value.replace(/\s/g, '').replace(',', '.'));
-  return Number.isFinite(normalized) ? normalized : 0;
-};
-
-const productFormSchema = z
-  .object({
-    name: z.string().min(1, 'Informe o nome do produto.'),
-    description: z.string().optional().or(z.literal('')),
-    price: z.string().min(1, 'Informe o preço.').refine(v => parsePriceInput(v) > 0, 'Preço inválido.'),
-    unit_type: z.string().min(1, 'Informe a unidade.'),
-    product_type: z.union([z.literal('PRODUTO_MENU'), z.literal('COMPONENTE_BOLO')]),
-    component_category: z.string().optional().or(z.literal('')),
-    image_url: z.union([z.literal(''), z.string().url('URL inválida.')]),
-    is_public: z.boolean(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.product_type === 'COMPONENTE_BOLO' && !data.component_category?.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Componentes precisam de uma categoria.',
-        path: ['component_category'],
-      });
-    }
-  });
-
-type ProductFormValues = z.infer<typeof productFormSchema>;
-
-const getDefaultProductForm = (): ProductFormValues => ({
-  name: '',
-  description: '',
-  price: '',
-  unit_type: '',
-  product_type: 'PRODUTO_MENU',
-  component_category: '',
-  image_url: '',
-  is_public: true,
-});
-
-const DEFAULT_COMPONENT_CATEGORIES: ComponentCategory[] = ['tamanho', 'recheio', 'cobertura', 'decoração'];
+// Módulos extraídos
+import {
+  productFormSchema,
+  getDefaultProductForm,
+  DEFAULT_COMPONENT_CATEGORIES,
+  type ProductFormValues,
+} from './products/schemas/productSchema';
+import {
+  createLocalId,
+  releaseObjectUrl,
+  parsePriceInput,
+  type MediaDraftItem,
+  type ProductTypeFilter,
+  type ComponentCategoryFilter,
+} from './products/helpers/mediaHelpers';
+import { ProductPreviewDialog } from './products/components/ProductPreviewDialog';
 
 export default function ProductsPage() {
   const { profile } = useAuth();
@@ -128,6 +79,8 @@ export default function ProductsPage() {
   const [view, setView] = useState<ViewType>('gallery');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const productForm = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -220,6 +173,12 @@ export default function ProductsPage() {
     productForm.reset(getDefaultProductForm());
     setMediaItems([]);
     setIsModalOpen(true);
+  };
+
+  // Preview produto (ao clicar na linha)
+  const handlePreviewProduct = (product: Product) => {
+    setPreviewProduct(product);
+    setIsPreviewOpen(true);
   };
 
   const handleEditProduct = (product: Product) => {
@@ -410,7 +369,7 @@ export default function ProductsPage() {
             <Button
               size="sm"
               variant={productTypeFilter === 'ALL' ? 'secondary' : 'ghost'}
-              className={`h-9 px-3 text-sm ${productTypeFilter === 'ALL' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-600'}`}
+              className={`h-9 px-3 text-sm ${productTypeFilter === 'ALL' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground'}`}
               onClick={() => setProductTypeFilter('ALL')}
             >
               Todos
@@ -418,7 +377,7 @@ export default function ProductsPage() {
             <Button
               size="sm"
               variant={productTypeFilter === 'PRODUTO_MENU' ? 'secondary' : 'ghost'}
-              className={`h-9 px-3 text-sm ${productTypeFilter === 'PRODUTO_MENU' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-600'}`}
+              className={`h-9 px-3 text-sm ${productTypeFilter === 'PRODUTO_MENU' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground'}`}
               onClick={() => setProductTypeFilter('PRODUTO_MENU')}
             >
               Menu
@@ -426,7 +385,7 @@ export default function ProductsPage() {
             <Button
               size="sm"
               variant={productTypeFilter === 'COMPONENTE_BOLO' ? 'secondary' : 'ghost'}
-              className={`h-9 px-3 text-sm ${productTypeFilter === 'COMPONENTE_BOLO' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-600'}`}
+              className={`h-9 px-3 text-sm ${productTypeFilter === 'COMPONENTE_BOLO' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground'}`}
               onClick={() => setProductTypeFilter('COMPONENTE_BOLO')}
             >
               Componentes
@@ -462,7 +421,7 @@ export default function ProductsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 pb-4">
             {productsData?.items.map((product) => (
               <Card key={product.id} className="overflow-hidden border-border shadow-sm hover:shadow-md transition-all group h-fit bg-card">
-                <div className="aspect-square relative overflow-hidden bg-muted/20 cursor-pointer" onClick={() => handleEditProduct(product)}>
+                <div className="aspect-square relative overflow-hidden bg-muted/20 cursor-pointer" onClick={() => handlePreviewProduct(product)}>
                   {product.image_url ? (
                     <img
                       src={product.image_url}
@@ -498,8 +457,28 @@ export default function ProductsPage() {
                     </Badge>
                   </div>
                 </div>
-                <CardContent className="p-4" onClick={() => handleEditProduct(product)}>
-                  <h3 className="font-semibold text-foreground truncate cursor-pointer hover:text-primary transition-colors" title={product.name}>{product.name}</h3>
+                <CardContent className="p-4 cursor-pointer" onClick={() => handlePreviewProduct(product)}>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className={`p-1 rounded hover:bg-muted transition-colors flex-shrink-0 ${product.is_visible !== false ? 'text-muted-foreground hover:text-foreground' : 'text-destructive/50 hover:text-destructive'}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isAdmin) return;
+                        updateMutation.mutate({
+                          ...product,
+                          is_visible: product.is_visible === false
+                        }).then(() => {
+                          toast.success(product.is_visible === false ? 'Produto visível' : 'Produto oculto');
+                        });
+                      }}
+                      disabled={!isAdmin}
+                      title={product.is_visible !== false ? 'Ocultar produto' : 'Mostrar produto'}
+                    >
+                      {product.is_visible !== false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    </button>
+                    <h3 className={`font-semibold truncate hover:text-primary transition-colors ${product.is_visible === false ? 'text-muted-foreground line-through' : 'text-foreground'}`} title={product.name}>{product.name}</h3>
+                  </div>
                   <div className="flex items-baseline mt-1 text-muted-foreground text-sm">
                     <span className="text-lg font-bold text-primary mr-1">
                       {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
@@ -556,7 +535,7 @@ export default function ProductsPage() {
                       className="hover:bg-muted/50 cursor-pointer group"
                       onClick={(e) => {
                         if ((e.target as HTMLElement).closest('input')) return;
-                        handleEditProduct(product);
+                        handlePreviewProduct(product);
                       }}
                     >
                       <TableCell onClick={(e) => e.stopPropagation()}>
@@ -577,7 +556,32 @@ export default function ProductsPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium text-foreground">{product.name}</TableCell>
+                      <TableCell className="font-medium text-foreground">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            className={`p-1 rounded hover:bg-muted transition-colors ${product.is_visible !== false ? 'text-muted-foreground hover:text-foreground' : 'text-destructive/50 hover:text-destructive'}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!isAdmin) return;
+                              // Toggle visibility
+                              updateMutation.mutate({
+                                ...product,
+                                is_visible: product.is_visible === false
+                              }).then(() => {
+                                toast.success(product.is_visible === false ? 'Produto visível' : 'Produto oculto');
+                              });
+                            }}
+                            disabled={!isAdmin}
+                            title={product.is_visible !== false ? 'Ocultar produto' : 'Mostrar produto'}
+                          >
+                            {product.is_visible !== false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                          </button>
+                          <span className={product.is_visible === false ? 'text-muted-foreground line-through' : ''}>
+                            {product.name}
+                          </span>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline">{product.product_type === 'COMPONENTE_BOLO' ? product.component_category : 'Menu'}</Badge>
                       </TableCell>
@@ -628,7 +632,27 @@ export default function ProductsPage() {
               <FormField
                 label="Preço"
                 name="price"
-                render={({ field }) => <Input {...field} placeholder="0,00" />}
+                render={({ field }) => (
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">R$</span>
+                    <Input
+                      {...field}
+                      placeholder="0,00"
+                      className="pl-10"
+                      onChange={(e) => {
+                        // Remove tudo que não for número
+                        const digits = e.target.value.replace(/\D/g, '');
+                        // Converte para centavos e formata
+                        const cents = parseInt(digits || '0', 10);
+                        const formatted = (cents / 100).toLocaleString('pt-BR', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        });
+                        field.onChange(formatted);
+                      }}
+                    />
+                  </div>
+                )}
               />
             </div>
 
@@ -703,6 +727,15 @@ export default function ProductsPage() {
           </form>
         </FormProvider>
       </AppDialog>
+
+      {/* Preview Dialog */}
+      <ProductPreviewDialog
+        product={previewProduct}
+        open={isPreviewOpen}
+        onOpenChange={setIsPreviewOpen}
+        onEdit={handleEditProduct}
+        isAdmin={isAdmin}
+      />
     </div>
   );
 }

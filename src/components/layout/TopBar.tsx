@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -50,7 +51,11 @@ export const TopBar: React.FC<TopBarProps> = ({
     <div className="flex items-center gap-3">
       {actions}
       <ThemeToggle />
-      <div className="flex items-center gap-2 rounded-full border border-border/60 bg-card/90 px-3 py-1.5 shadow-sm">
+      <Link
+        to="/settings"
+        className="flex items-center gap-2 rounded-full border border-border/60 bg-card/90 px-3 py-1.5 shadow-sm hover:bg-muted/50 transition-colors cursor-pointer"
+        title="Configurações do perfil"
+      >
         <Avatar className="h-9 w-9">
           <AvatarImage src={avatarUrl ?? undefined} alt={userName ?? 'Usuário'} />
           <AvatarFallback>
@@ -70,7 +75,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             </span>
           ) : null}
         </div>
-      </div>
+      </Link>
     </div>
   </header>
 );

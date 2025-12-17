@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../components/ui/card';
+import { Card, CardContent } from '../components/ui/card';
 import { Checkbox } from '../components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
@@ -24,7 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
-import { useToast } from '../hooks/use-toast';
+import { useToast } from '../hooks/useToast';
 import { useAuth } from '../providers/AuthProvider';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { useSupabaseMutation } from '../hooks/useSupabaseMutation';
@@ -37,7 +37,7 @@ import {
   updateClient,
   type ClientInput,
 } from '../services/clientsService';
-import { PaginatedList, EmptyState, FilterBar } from '../components/patterns';
+import { PaginatedList, EmptyState } from '../components/patterns';
 import { ClientDialog } from './clients/ClientDialog';
 
 const ClientsPage: React.FC = () => {
@@ -218,7 +218,7 @@ const ClientsPage: React.FC = () => {
 
       <div className="flex items-center justify-between gap-4 flex-none">
         <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por nome, email..."
             className="pl-10 bg-card"
@@ -240,7 +240,7 @@ const ClientsPage: React.FC = () => {
                 <EmptyState
                   title="Nenhum cliente encontrado"
                   description="Tente buscar por outro termo ou cadastre um novo cliente."
-                  icon={<Search className="h-10 w-10 text-slate-300" />}
+                  icon={<Search className="h-10 w-10 text-muted-foreground/50" />}
                 />
               </div>
             ) : (

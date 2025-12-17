@@ -7,108 +7,76 @@
 
 @layer base {
 
-  /* :root define as variáveis CSS globais para o tema CLARO (Light Mode) */
-  :root {
+  /* :root e .light define as variáveis CSS para o tema CLARO (Light Mode) */
+  :root,
+  .light {
     color-scheme: light;
-    /* Informa ao navegador que este é um esquema claro */
 
-    /* Cores de Fundo e Texto Principais */
-    --background: oklch(0.982 0.01 24);
-    /* Cor de fundo da página (quase branco) */
-    --foreground: oklch(0.21 0.032 18);
-    /* Cor do texto principal (quase preto) */
+    /* Cores de Fundo e Texto Principais - Neutras */
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.15 0 0);
 
     /* Cores de Cartões (Cards) */
     --card: oklch(1 0 0);
-    /* Fundo dos cartões (branco puro) */
-    --card-foreground: oklch(0.225 0.045 18);
-    /* Texto dentro dos cartões */
+    --card-foreground: oklch(0.15 0 0);
 
-    /* Cores de Popovers (Menus flutuantes, tooltips) */
+    /* Cores de Popovers */
     --popover: oklch(1 0 0);
-    /* Fundo do popover */
-    --popover-foreground: oklch(0.22 0.04 15);
-    /* Texto do popover */
+    --popover-foreground: oklch(0.15 0 0);
 
-    /* Cor Primária (Botões principais, destaques) - Ajustado para Rosa (Brand) */
-    --primary: oklch(0.6 0.23 20);
-    /* Fundo do botão primário */
-    --primary-foreground: oklch(0.985 0 0);
-    /* Texto do botão primário (branco) */
+    /* Cor Primária - Rosa da Marca */
+    --primary: oklch(0.65 0.25 12);
+    --primary-foreground: oklch(1 0 0);
 
-    /* Cor Secundária (Botões secundários, fundos sutis) */
-    --secondary: oklch(0.962 0.02 35);
-    /* Fundo secundário (cinza claro) */
-    --secondary-foreground: oklch(0.355 0.02 12);
-    /* Texto secundário */
+    /* Cor Secundária */
+    --secondary: oklch(0.96 0 0);
+    --secondary-foreground: oklch(0.30 0 0);
 
-    /* Cores "Muted" (Desabilitado, texto de apoio, discretos) */
-    --muted: oklch(0.94 0.02 48);
-    /* Fundo discreto */
-    --muted-foreground: oklch(0.48 0.025 18);
-    /* Texto discreto (cinza médio) */
+    /* Cores "Muted" (Discretos) */
+    --muted: oklch(0.96 0 0);
+    --muted-foreground: oklch(0.55 0 0);
 
-    /* Cor de Acento (Elementos de destaque menor) */
-    --accent: oklch(0.94 0.03 70);
-    /* Fundo de acento */
-    --accent-foreground: oklch(0.335 0.018 20);
-    /* Texto de acento */
+    /* Cor de Acento */
+    --accent: oklch(0.96 0 0);
+    --accent-foreground: oklch(0.15 0 0);
 
-    /* Cor Destrutiva (Erros, deletar, perigo) */
-    --destructive: oklch(0.6 0.23 27);
-    /* Vermelho para erros */
-    --destructive-foreground: oklch(0.985 0.008 20);
-    /* Texto sobre o vermelho */
+    /* Cor Destrutiva (Erros) */
+    --destructive: oklch(0.55 0.22 27);
+    --destructive-foreground: oklch(1 0 0);
 
     /* Bordas e Inputs */
-    --border: oklch(0.91 0.01 32);
-    /* Cor das bordas padrão */
-    --input: oklch(0.92 0.01 32);
-    /* Cor da borda de inputs de texto */
-    --ring: oklch(0.6 0.23 20);
-    /* Cor do anel de foco (quando clica no input) */
+    --border: oklch(0.90 0 0);
+    --input: oklch(0.90 0 0);
+    --ring: oklch(0.65 0.25 12);
 
-    /* Cores para Gráficos (Charts) */
-    --chart-1: oklch(0.6 0.23 20);
-    /* Cor 1 do gráfico */
-    --chart-2: oklch(0.61 0.17 140);
-    /* Cor 2 do gráfico */
-    --chart-3: oklch(0.62 0.19 305);
-    /* Cor 3 do gráfico */
-    --chart-4: oklch(0.77 0.21 80);
-    /* Cor 4 do gráfico */
-    --chart-5: oklch(0.75 0.19 50);
-    /* Cor 5 do gráfico */
+    /* Cores para Gráficos */
+    --chart-1: oklch(0.65 0.25 12);
+    --chart-2: oklch(0.60 0.18 145);
+    --chart-3: oklch(0.55 0.18 260);
+    --chart-4: oklch(0.75 0.18 70);
+    --chart-5: oklch(0.60 0.20 300);
 
     /* Arredondamento Global */
-    --radius: 0.875rem;
-    /* Raio da borda padrão (cantos arredondados) ~14px */
+    --radius: 0.625rem;
 
-    /* Variáveis Específicas da Sidebar (Barra Lateral) */
-    --sidebar: oklch(0.99 0.008 28);
-    /* Fundo da sidebar */
-    --sidebar-foreground: oklch(0.205 0.02 15);
-    /* Texto da sidebar */
-    --sidebar-primary: oklch(0.6 0.23 20);
-    /* Cor primária na sidebar */
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    /* Texto primário na sidebar */
-    --sidebar-accent: oklch(0.95 0.02 60);
-    /* Cor de destaque na sidebar (hover) */
-    --sidebar-accent-foreground: oklch(0.32 0.015 15);
-    /* Texto de destaque na sidebar */
-    --sidebar-border: oklch(0.9 0.01 32);
-    /* Borda da sidebar */
-    --sidebar-ring: oklch(0.6 0.23 20);
-    /* Anel de foco na sidebar */
+    /* Sidebar */
+    --sidebar: oklch(0.98 0 0);
+    --sidebar-foreground: oklch(0.15 0 0);
+    --sidebar-primary: oklch(0.65 0.25 12);
+    --sidebar-primary-foreground: oklch(1 0 0);
+    --sidebar-accent: oklch(0.96 0 0);
+    --sidebar-accent-foreground: oklch(0.15 0 0);
+    --sidebar-border: oklch(0.90 0 0);
+    --sidebar-ring: oklch(0.65 0.25 12);
 
-    /* Cores Semânticas (Sucesso, Aviso, Info) */
-    --success: oklch(0.75 0.18 150);
-    /* Verde sucesso */
-    --warning: oklch(0.79 0.12 70);
-    /* Laranja aviso */
-    --info: oklch(0.7 0.12 230);
-    /* Azul informação */
+    /* Cores Semânticas */
+    --success: oklch(0.60 0.18 145);
+    --warning: oklch(0.75 0.18 70);
+    --info: oklch(0.55 0.18 260);
+
+    /* Input Background */
+    --input-background: oklch(1 0 0);
+
     /* Gradientes */
     --gradient-primary: linear-gradient(135deg, rgb(244 63 94) 0%, rgb(236 72 153) 50%, rgb(251 146 60) 100%);
     --gradient-primary-soft: linear-gradient(135deg, rgba(244, 63, 94, 0.1) 0%, rgba(251, 146, 60, 0.1) 100%);
@@ -121,68 +89,68 @@
   /* .dark define as variáveis para o tema ESCURO (Dark Mode) */
   .dark {
     color-scheme: dark;
-    /* Informa ao navegador que este é um esquema escuro */
 
-    /* Cores de Fundo e Texto (Dark Slate Theme) */
-    --background: oklch(0.13 0.02 260);
-    /* Slate 950+ - Fundo profundo azulado */
-    --foreground: oklch(0.98 0.01 260);
-    /* Texto claro (quase branco com toque frio) */
+    /* Cores de Fundo e Texto - Neutras */
+    --background: oklch(0.15 0 0);
+    --foreground: oklch(0.95 0 0);
 
-    --card: oklch(0.17 0.02 260);
-    /* Slate 900 - Fundo do cartão */
-    --card-foreground: oklch(0.98 0.01 260);
-    /* Texto do cartão */
+    /* Cards */
+    --card: oklch(0.18 0 0);
+    --card-foreground: oklch(0.95 0 0);
 
-    --popover: oklch(0.17 0.02 260);
-    --popover-foreground: oklch(0.98 0.01 260);
+    /* Popovers */
+    --popover: oklch(0.18 0 0);
+    --popover-foreground: oklch(0.95 0 0);
 
-    --primary: oklch(0.6 0.23 20);
-    /* Mantém o Rosa da marca */
-    --primary-foreground: oklch(0.985 0 0);
+    /* Cor Primária - Mesmo Rosa */
+    --primary: oklch(0.65 0.25 12);
+    --primary-foreground: oklch(1 0 0);
 
-    --secondary: oklch(0.25 0.03 260);
-    /* Slate 800 */
-    --secondary-foreground: oklch(0.98 0.01 260);
+    /* Secundária */
+    --secondary: oklch(0.25 0 0);
+    --secondary-foreground: oklch(0.95 0 0);
 
-    --muted: oklch(0.25 0.03 260);
-    /* Slate 800 */
-    --muted-foreground: oklch(0.70 0.03 260);
-    /* Slate 400 */
+    /* Muted */
+    --muted: oklch(0.25 0 0);
+    --muted-foreground: oklch(0.65 0 0);
 
-    --accent: oklch(0.25 0.03 260);
-    /* Slate 800 */
-    --accent-foreground: oklch(0.98 0.01 260);
+    /* Acento */
+    --accent: oklch(0.25 0 0);
+    --accent-foreground: oklch(0.95 0 0);
 
-    --destructive: oklch(0.52 0.18 27);
-    --destructive-foreground: oklch(0.985 0.008 20);
+    /* Destrutiva */
+    --destructive: oklch(0.55 0.22 27);
+    --destructive-foreground: oklch(1 0 0);
 
-    --border: oklch(0.25 0.03 260);
-    /* Bordas sutis em Slate */
-    --input: oklch(0.25 0.03 260);
-    --ring: oklch(0.6 0.23 20);
+    /* Bordas e Inputs */
+    --border: oklch(0.30 0 0);
+    --input: oklch(0.30 0 0);
+    --ring: oklch(0.65 0.25 12);
 
-    /* Gráficos ajustados para fundo escuro */
-    --chart-1: oklch(0.6 0.23 20);
-    --chart-2: oklch(0.66 0.2 170);
-    --chart-3: oklch(0.7 0.24 310);
-    --chart-4: oklch(0.74 0.2 80);
-    --chart-5: oklch(0.68 0.22 40);
+    /* Gráficos */
+    --chart-1: oklch(0.65 0.25 12);
+    --chart-2: oklch(0.60 0.18 145);
+    --chart-3: oklch(0.60 0.18 260);
+    --chart-4: oklch(0.75 0.18 70);
+    --chart-5: oklch(0.65 0.20 300);
 
-    /* Sidebar Dark Mode (Alinhado com o tema Slate) */
-    --sidebar: oklch(0.15 0.02 260);
-    /* Um pouco mais claro que o bg principal ou igual */
-    --sidebar-foreground: oklch(0.98 0.01 260);
-    --sidebar-primary: oklch(0.6 0.23 20);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.25 0.03 260);
-    --sidebar-accent-foreground: oklch(0.98 0.01 260);
-    --sidebar-border: oklch(0.25 0.03 260);
-    --sidebar-ring: oklch(0.6 0.23 20);
+    /* Sidebar */
+    --sidebar: oklch(0.17 0 0);
+    --sidebar-foreground: oklch(0.95 0 0);
+    --sidebar-primary: oklch(0.65 0.25 12);
+    --sidebar-primary-foreground: oklch(1 0 0);
+    --sidebar-accent: oklch(0.25 0 0);
+    --sidebar-accent-foreground: oklch(0.95 0 0);
+    --sidebar-border: oklch(0.30 0 0);
+    --sidebar-ring: oklch(0.65 0.25 12);
 
-    --success: oklch(0.66 0.17 150);
-    --warning: oklch(0.69 0.13 70);
-    --info: oklch(0.68 0.12 230);
+    /* Cores Semânticas */
+    --success: oklch(0.60 0.18 145);
+    --warning: oklch(0.75 0.18 70);
+    --info: oklch(0.60 0.18 260);
+
+    /* Input Background */
+    --input-background: oklch(0.20 0 0);
   }
 
   /* Aplica a cor da borda padrão a todos os elementos */
@@ -193,9 +161,7 @@
   /* Estilos globais do corpo da página */
   body {
     @apply bg-background text-foreground antialiased;
-    /* Fundo, texto e suavização de fonte */
     font-family: 'Inter', sans-serif;
-    /* Fonte padrão */
   }
 }
 
@@ -209,7 +175,6 @@ textarea {
   transition-property: color, background-color, border-color, fill, stroke, box-shadow;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 200ms;
-  /* Duração de 0.2s */
 }
 
 /* Classes utilitárias personalizadas para Gradientes */
@@ -240,15 +205,12 @@ textarea {
 /* Efeito de Vidro (Glassmorphism) */
 .glass-effect {
   backdrop-filter: blur(16px) saturate(180%);
-  /* Desfoque do fundo */
   background: rgba(255, 255, 255, 0.85);
-  /* Fundo branco semi-transparente */
 }
 
 .glass-effect-dark {
   backdrop-filter: blur(16px) saturate(180%);
   background: rgba(30, 41, 59, 0.85);
-  /* Fundo escuro semi-transparente */
 }
 
 /* Sombras coloridas (Glow) */
@@ -261,11 +223,8 @@ textarea {
 }
 
 @layer utilities {
-  /* Classes utilitárias extras */
-
   .bg-brand-primary {
     @apply bg-primary;
-    /* Define bg-brand-primary como primary (rosa) */
   }
 
   .text-brand-primary {
@@ -280,16 +239,13 @@ textarea {
     @apply bg-primary/10;
   }
 
-  /* Estilos específicos para impressão (Ctrl+P) */
   @media print {
     .no-print {
       display: none !important;
-      /* Esconde elementos na impressão */
     }
 
     .print-only {
       display: block !important;
-      /* Mostra apenas na impressão */
     }
 
     body {
@@ -304,7 +260,6 @@ textarea {
     }
   }
 
-  /* Animação de Fade In (Aparecer suavemente) */
   .fade-in {
     animation: fadeIn 0.5s ease-in-out;
   }
@@ -313,13 +268,11 @@ textarea {
     from {
       opacity: 0;
       transform: translateY(10px);
-      /* Começa um pouco abaixo */
     }
 
     to {
       opacity: 1;
       transform: translateY(0);
-      /* Termina na posição original */
     }
   }
 }

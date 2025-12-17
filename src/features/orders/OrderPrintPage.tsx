@@ -81,17 +81,17 @@ export default function OrderPrintPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-white">
-                <Loader2 className="h-8 w-8 animate-spin text-slate-900" />
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <Loader2 className="h-8 w-8 animate-spin text-foreground" />
             </div>
         );
     }
 
     if (error || !order) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-white p-4 text-center">
-                <h1 className="text-xl font-bold text-slate-900 mb-2">Erro ao carregar pedido</h1>
-                <p className="text-slate-500">{error ? (error as Error).message : 'Pedido não encontrado'}</p>
+            <div className="min-h-screen flex items-center justify-center bg-background p-4 text-center">
+                <h1 className="text-xl font-bold text-foreground mb-2">Erro ao carregar pedido</h1>
+                <p className="text-muted-foreground">{error ? (error as Error).message : 'Pedido não encontrado'}</p>
             </div>
         );
     }

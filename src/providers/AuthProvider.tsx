@@ -2,14 +2,18 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 
-type ProfileRole = 'admin' | 'kitchen' | 'delivery';
+import type { ProfileRole } from '../types';
 
 export interface UserProfile {
   id: string;
-  full_name: string;
+  full_name: string | null;
   email: string;
   role: ProfileRole;
   avatar_url: string | null;
+  phone: string | null;
+  notify_new_orders?: boolean;
+  notify_approved_quotes?: boolean;
+  notify_delivery_reminder?: boolean;
 }
 
 interface AuthContextValue {
@@ -34,7 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loadProfile = async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, email, role, avatar_url')
+      .select('id, full_name, email, role, avatar_url, phone, notify_new_orders, notify_approved_quotes, notify_delivery_reminder')
       .eq('id', userId)
       .maybeSingle();
 

@@ -46,31 +46,31 @@ export default function PublicProposalPage() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50">
-                <Loader2 className="h-8 w-8 animate-spin text-slate-900" />
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <Loader2 className="h-8 w-8 animate-spin text-foreground" />
             </div>
         );
     }
 
     if (error || !quote) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4 text-center">
-                <h1 className="text-2xl font-bold text-slate-900 mb-2">Orçamento não encontrado</h1>
-                <p className="text-slate-500">O link pode estar expirado ou incorreto.</p>
+            <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 text-center">
+                <h1 className="text-2xl font-bold text-foreground mb-2">Orçamento não encontrado</h1>
+                <p className="text-muted-foreground">O link pode estar expirado ou incorreto.</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6">
+        <div className="min-h-screen bg-background py-12 px-4 sm:px-6">
             <div className="max-w-3xl mx-auto space-y-8 fade-in">
                 {/* Brand Header */}
                 <div className="text-center space-y-2">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-slate-900 text-white mb-4 shadow-lg shadow-slate-900/20">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-foreground mb-4 shadow-lg shadow-primary/20">
                         <span className="text-2xl font-bold">M</span>
                     </div>
-                    <h1 className="text-3xl font-bold text-slate-900">Proposta Comercial</h1>
-                    <p className="text-slate-500">Preparado especialmente para você</p>
+                    <h1 className="text-3xl font-bold text-foreground">Proposta Comercial</h1>
+                    <p className="text-muted-foreground">Preparado especialmente para você</p>
                 </div>
 
                 <QuotePreview
@@ -87,7 +87,7 @@ export default function PublicProposalPage() {
                             </Button>
                             <Button
                                 variant="outline"
-                                className="w-full h-12 text-base bg-white hover:bg-slate-50 text-slate-700 border-slate-300"
+                                className="w-full h-12 text-base bg-card hover:bg-accent text-foreground border-border"
                                 onClick={handleWhatsApp}
                             >
                                 <MessageCircle className="mr-2 h-5 w-5 text-green-600" />
@@ -97,7 +97,7 @@ export default function PublicProposalPage() {
                     }
                 />
 
-                <div className="text-center text-sm text-slate-400">
+                <div className="text-center text-sm text-muted-foreground">
                     <p>Este link expira em 7 dias.</p>
                 </div>
             </div>

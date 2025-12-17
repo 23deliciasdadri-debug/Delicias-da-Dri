@@ -10,9 +10,11 @@ import {
     Menu,
     X,
     Bell,
-    Archive
+    Archive,
+    Wallet
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import { useAuth } from '../../providers/AuthProvider';
 import { MobileNavBar } from './MobileNavBar';
 import { GlobalFab } from './GlobalFab';
 import { ThemeToggle } from '../theme/ThemeToggle';
@@ -21,6 +23,15 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
+    const { profile } = useAuth();
+
+    const avatarUrl = profile?.avatar_url;
+    const initials = profile?.full_name
+        ?.split(' ')
+        .slice(0, 2)
+        .map(n => n[0])
+        .join('')
+        .toUpperCase() || 'U';
 
     const menuItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -29,6 +40,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         { icon: Package, label: 'Produtos', path: '/products' },
         { icon: Archive, label: 'Estoque', path: '/inventory' },
         { icon: Users, label: 'Clientes', path: '/customers' },
+        { icon: Wallet, label: 'Fluxo de Caixa', path: '/cashflow' },
     ];
 
     const isActive = (path: string) => location.pathname.startsWith(path);
@@ -120,9 +132,17 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                             <Bell size={20} />
                             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full border-2 border-background"></span>
                         </button>
-                        <div className="h-8 w-8 rounded-full bg-muted overflow-hidden border border-border">
-                            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Admin" />
-                        </div>
+                        <Link
+                            to="/settings"
+                            className="h-8 w-8 rounded-full bg-muted overflow-hidden border border-border hover:ring-2 hover:ring-primary/50 transition-all cursor-pointer flex items-center justify-center"
+                            title="Configurações"
+                        >
+                            {avatarUrl ? (
+                                <img src={avatarUrl} alt="Perfil" className="w-full h-full object-cover" />
+                            ) : (
+                                <span className="text-xs font-semibold text-muted-foreground">{initials}</span>
+                            )}
+                        </Link>
                     </div>
                 </header>
 

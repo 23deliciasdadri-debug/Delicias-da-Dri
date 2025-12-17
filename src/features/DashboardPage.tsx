@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp,
   TrendingDown,
@@ -43,6 +44,7 @@ const formatDate = (value: string | null) => {
 };
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const [period, setPeriod] = useState<DashboardPeriod>('LAST_30_DAYS');
 
   const dashboardFetcher = useCallback(() => fetchDashboardData(period), [period]);
@@ -159,6 +161,30 @@ export default function DashboardPage() {
               <span className="flex items-center text-xs font-medium text-info bg-info/10 px-2 py-1 rounded-full">
                 <ArrowUpRight className="h-3 w-3 mr-1" />
                 +8%
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Lucro Líquido */}
+        <Card className="border-border shadow-sm hover:shadow-md transition-shadow bg-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between space-y-0 pb-2">
+              <p className="text-sm font-medium text-muted-foreground">Lucro Líquido</p>
+              <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center">
+                <TrendingUp className="h-4 w-4 text-success" />
+              </div>
+            </div>
+            <div className="flex items-baseline justify-between mt-3">
+              <h2 className="text-3xl font-bold text-foreground">
+                {dashboardData ? currencyFormatter.format(dashboardData.totalRevenue - dashboardData.expenses) : '...'}
+              </h2>
+              <span className={`flex items-center text-xs font-medium px-2 py-1 rounded-full ${(dashboardData?.totalRevenue ?? 0) >= (dashboardData?.expenses ?? 0) ? 'text-success bg-success/10' : 'text-destructive bg-destructive/10'}`}>
+                {(dashboardData?.totalRevenue ?? 0) >= (dashboardData?.expenses ?? 0) ? (
+                  <><ArrowUpRight className="h-3 w-3 mr-1" />Positivo</>
+                ) : (
+                  <><ArrowDownRight className="h-3 w-3 mr-1" />Negativo</>
+                )}
               </span>
             </div>
           </CardContent>
@@ -289,7 +315,11 @@ export default function DashboardPage() {
                 <p className="text-sm text-muted-foreground text-center py-4">Nenhuma atividade recente.</p>
               )}
             </div>
-            <Button variant="ghost" className="w-full mt-6 text-destructive hover:text-destructive hover:bg-destructive/10">
+            <Button
+              variant="ghost"
+              className="w-full mt-6 text-primary hover:text-primary hover:bg-primary/10"
+              onClick={() => navigate('/orders')}
+            >
               Ver todas as atividades
             </Button>
           </CardContent>

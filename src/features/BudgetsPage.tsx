@@ -1,4 +1,5 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useState } from 'react';
+import { formatLocalDate } from '../utils/dateHelpers';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Plus,
@@ -20,12 +21,19 @@ import {
   PointerSensor,
   TouchSensor,
   closestCenter,
-  useDroppable,
   useSensor,
   useSensors
 } from '@dnd-kit/core';
-import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+
+// Componentes e helpers extraídos
+import BudgetCard from './budgets/components/BudgetCard';
+import BudgetKanbanColumn from './budgets/components/BudgetKanbanColumn';
+import {
+  buildColumns,
+  findQuoteLocation,
+  moveQuoteToStatus,
+  KANBAN_COLUMNS_CONFIG,
+} from './budgets/helpers/kanbanHelpers';
 
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -34,8 +42,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
-
-import { ScrollArea } from '../components/ui/scroll-area';
 import { toast } from 'sonner';
 
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
@@ -61,61 +67,8 @@ import BudgetForm from './budgets/BudgetForm';
 import { PaginatedList, EmptyState, AppDialog, FilterBar } from '../components/patterns';
 import { ViewSwitcher, type ViewType } from '../components/ViewSwitcher';
 
-const kanbanColumnsConfig = [
-  { id: 'Pendente', label: 'Pendente / Enviado', color: 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400' },
-  { id: 'Aprovado', label: 'Aprovado', color: 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400' },
-  { id: 'Recusado', label: 'Rejeitado / Perdido', color: 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-400' },
-];
-
+// Constante de status usada localmente (ALL_STATUSES vem de QUOTE_STATUSES)
 const ALL_STATUSES: QuoteStatus[] = QUOTE_STATUSES;
-
-const getQuoteStatusClass = (status: string) =>
-  QUOTE_STATUS_OPTIONS.find((opt) => opt.value === status)?.className || '';
-
-// --- Helpers for DnD ---
-
-const buildColumns = (quotes?: QuoteDetails[]): Record<QuoteStatus, QuoteDetails[]> => {
-  const base = {} as Record<QuoteStatus, QuoteDetails[]>;
-  ALL_STATUSES.forEach((status) => { base[status] = []; });
-  (quotes ?? []).forEach((quote) => {
-    // Ensure status is valid, otherwise maybe fallback or ignore
-    if (base[quote.status]) base[quote.status].push(quote);
-  });
-  return base;
-};
-
-const findQuoteLocation = (columns: Record<QuoteStatus, QuoteDetails[]>, quoteId: string) => {
-  for (const status of ALL_STATUSES) {
-    const column = columns[status] ?? [];
-    const index = column.findIndex((q) => q.id === quoteId);
-    if (index >= 0) return { status, index, quote: column[index] };
-  }
-  return null;
-};
-
-const moveQuoteToStatus = (
-  columns: Record<QuoteStatus, QuoteDetails[]>,
-  quoteId: string,
-  targetStatus: QuoteStatus,
-  targetIndex?: number
-) => {
-  const location = findQuoteLocation(columns, quoteId);
-  if (!location) return columns;
-
-  const clone = { ...columns };
-  // Deep copy arrays
-  ALL_STATUSES.forEach(s => { clone[s] = [...(columns[s] || [])]; });
-
-  const [quote] = clone[location.status].splice(location.index, 1);
-  if (!quote) return columns;
-
-  const updatedQuote = { ...quote, status: targetStatus };
-  const targetColumn = clone[targetStatus];
-  const insertionIndex = targetIndex !== undefined ? Math.min(targetIndex, targetColumn.length) : targetColumn.length;
-  targetColumn.splice(insertionIndex, 0, updatedQuote);
-
-  return clone;
-};
 
 export default function BudgetsPage() {
   const navigate = useNavigate();
@@ -510,7 +463,7 @@ export default function BudgetsPage() {
         }
         right={
           <div className="relative w-full sm:w-96">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar cliente ou evento..."
               className="pl-10 bg-card"
@@ -525,13 +478,13 @@ export default function BudgetsPage() {
       <div className="flex-1 min-h-0">
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-slate-900" />
+            <Loader2 className="h-8 w-8 animate-spin text-foreground" />
           </div>
         ) : quotesData?.items.length === 0 ? (
           <EmptyState
             title="Nenhum orçamento encontrado"
             description="Tente ajustar os filtros ou crie um novo orçamento."
-            icon={<Search className="h-10 w-10 text-slate-300" />}
+            icon={<Search className="h-10 w-10 text-muted-foreground/50" />}
           />
         ) : (
           <>
@@ -629,7 +582,7 @@ export default function BudgetsPage() {
                             </TableCell>
                             <TableCell>{budget.event_type || '—'}</TableCell>
                             <TableCell>
-                              {budget.event_date ? new Date(budget.event_date).toLocaleDateString('pt-BR') : '-'}
+                              {formatLocalDate(budget.event_date, '-')}
                             </TableCell>
                             <TableCell>
                               {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(budget.total_amount)}
@@ -653,10 +606,10 @@ export default function BudgetsPage() {
                                 <DropdownMenuContent align="end" className="w-[180px]">
                                   <DropdownMenuLabel>Ações</DropdownMenuLabel>
                                   <DropdownMenuItem onClick={(e) => { e.stopPropagation(); void handleOpenDetails(budget.id); }}>
-                                    <Eye className="mr-2 h-4 w-4 text-slate-500" /> Ver Detalhes
+                                    <Eye className="mr-2 h-4 w-4 text-muted-foreground" /> Ver Detalhes
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={(e) => { e.stopPropagation(); void handleStartEdit(budget.id); }} disabled={!isAdmin}>
-                                    <Edit3 className="mr-2 h-4 w-4 text-slate-500" /> Editar
+                                    <Edit3 className="mr-2 h-4 w-4 text-muted-foreground" /> Editar
                                   </DropdownMenuItem>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem onClick={(e) => { e.stopPropagation(); void handleStatusChange(budget.id, 'Aprovado'); }} disabled={!isAdmin}>
@@ -717,7 +670,7 @@ export default function BudgetsPage() {
                         <div className="flex items-center justify-between mt-2 mb-4">
                           <div className="flex items-center text-sm text-muted-foreground">
                             <Clock className="h-3 w-3 mr-1" />
-                            {budget.event_date ? new Date(budget.event_date).toLocaleDateString('pt-BR') : '-'}
+                            {formatLocalDate(budget.event_date, '-')}
                           </div>
                           <StatusMenu
                             status={budget.status}
@@ -757,8 +710,8 @@ export default function BudgetsPage() {
                   onDragEnd={handleDragEnd}
                 >
                   <div className="flex gap-6 h-full min-w-[900px]">
-                    {kanbanColumnsConfig.map((col) => (
-                      <KanbanColumn
+                    {KANBAN_COLUMNS_CONFIG.map((col) => (
+                      <BudgetKanbanColumn
                         key={col.id}
                         id={col.id}
                         label={col.label}
@@ -834,117 +787,3 @@ export default function BudgetsPage() {
     </div>
   );
 }
-
-// --- Subcomponents ---
-
-interface KanbanColumnProps {
-  id: string;
-  label: string;
-  color: string;
-  quotes: QuoteDetails[];
-  onQuoteClick: (id: string) => void;
-  onEdit: (id: string) => void;
-  onStatusChange: (id: string, status: QuoteStatus) => void;
-  isAdmin: boolean;
-}
-
-const KanbanColumn: React.FC<KanbanColumnProps> = ({ id, label, color, quotes, onQuoteClick, onEdit, onStatusChange, isAdmin }) => {
-  const { setNodeRef } = useDroppable({ id });
-
-  return (
-    <div className="flex-1 flex flex-col h-full bg-slate-100/50 rounded-xl border border-slate-200/60 p-3">
-      <div className={`flex items-center justify-between p-3 mb-3 rounded-lg border ${color} bg-white shadow-sm font-medium`}>
-        {label}
-        <Badge variant="secondary">{quotes.length}</Badge>
-      </div>
-      <ScrollArea className="flex-1 w-full h-full min-h-0 pr-3" hideScrollbar>
-        <div ref={setNodeRef} className="space-y-3 min-h-[100px]">
-          <SortableContext items={quotes.map(q => q.id)} strategy={verticalListSortingStrategy}>
-            {quotes.map(budget => (
-              <BudgetCard
-                key={budget.id}
-                quote={budget}
-                onClick={() => onQuoteClick(budget.id)}
-                onEdit={onEdit}
-                onStatusChange={onStatusChange}
-                isAdmin={isAdmin}
-              />
-            ))}
-          </SortableContext>
-          {quotes.length === 0 && (
-            <div className="text-center py-8 text-sm text-slate-400 border-2 border-dashed border-slate-200 rounded-lg">
-              Vazio
-            </div>
-          )}
-        </div>
-      </ScrollArea>
-    </div>
-  );
-};
-
-interface BudgetCardProps {
-  quote: QuoteDetails;
-  isOverlay?: boolean;
-  onClick?: () => void;
-  onEdit?: (id: string) => void;
-  onStatusChange?: (id: string, status: QuoteStatus) => void;
-  isAdmin?: boolean;
-}
-
-const BudgetCard: React.FC<BudgetCardProps> = ({ quote, isOverlay, onClick, onEdit, onStatusChange, isAdmin }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: quote.id,
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <Card
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className={`cursor-grab active:cursor-grabbing hover:shadow-md transition-all group relative ${isOverlay ? 'shadow-xl rotate-2 scale-105' : ''}`}
-      onClick={onClick}
-    >
-      <CardContent className="p-4">
-        <div className="flex justify-between items-start mb-2">
-          <span className="text-xs font-medium text-slate-400">#{quote.id.slice(0, 8)}</span>
-          {!isOverlay && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-2 opacity-0 group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
-                  <MoreHorizontal className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Mover para:</DropdownMenuLabel>
-                {kanbanColumnsConfig.filter(c => c.id !== quote.status).map(targetCol => (
-                  <DropdownMenuItem key={targetCol.id} onClick={(e) => { e.stopPropagation(); onStatusChange?.(quote.id, targetCol.id as any); }} disabled={!isAdmin}>
-                    {targetCol.label}
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit?.(quote.id); }} disabled={!isAdmin}>
-                  Editar
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-        <h4 className="font-semibold text-slate-900 mb-1 truncate" title={quote.client?.name}>{quote.client?.name}</h4>
-        <p className="text-sm text-slate-500 mb-3">{quote.event_type}</p>
-        <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-          <span className="text-xs text-slate-400">{quote.event_date ? new Date(quote.event_date).toLocaleDateString('pt-BR') : '—'}</span>
-          <span className="font-bold text-slate-900 text-sm">
-            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(quote.total_amount)}
-          </span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};

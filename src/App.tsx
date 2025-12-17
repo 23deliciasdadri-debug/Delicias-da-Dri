@@ -12,6 +12,8 @@ import ClientsPage from './features/ClientsPage';
 import InventoryPage from './features/InventoryPage';
 import PublicProposalPage from './features/PublicProposalPage';
 import OrderPrintPage from './features/orders/OrderPrintPage';
+import SettingsPage from './features/SettingsPage';
+import CashflowPage from './features/CashflowPage';
 import { useAuth } from './providers/AuthProvider';
 
 const ProtectedRoute = ({ children, layout = true }: { children: React.ReactNode; layout?: boolean }) => {
@@ -19,10 +21,10 @@ const ProtectedRoute = ({ children, layout = true }: { children: React.ReactNode
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-2">
-          <div className="w-8 h-8 border-4 border-rose-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-sm text-slate-500">Carregando...</p>
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm text-muted-foreground">Carregando...</p>
         </div>
       </div>
     );
@@ -55,6 +57,8 @@ const App: React.FC = () => {
         <Route path="/products" element={<ProtectedRoute><ProductsPage /></ProtectedRoute>} />
         <Route path="/inventory" element={<ProtectedRoute><InventoryPage /></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} />
+        <Route path="/cashflow" element={<ProtectedRoute><CashflowPage /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         <Route path="/print/order/:id" element={<ProtectedRoute layout={false}><OrderPrintPage /></ProtectedRoute>} />
 
         {/* Redirect root to dashboard if authenticated, or login if not (handled by ProtectedRoute logic mostly, but explicit redirect helps) */}

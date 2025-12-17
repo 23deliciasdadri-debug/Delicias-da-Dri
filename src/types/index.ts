@@ -98,7 +98,46 @@ export interface Order {
   status: OrderStatus;
   total_amount: number;
   delivery_details?: string | null;
+  cashflow_registered?: boolean;
   created_at?: string;
 }
 
 export type ProfileRole = 'admin' | 'kitchen' | 'delivery';
+
+// Cashflow types
+export type TransactionType = 'income' | 'expense';
+
+export interface TransactionCategory {
+  id: string;
+  user_id: string | null;
+  name: string;
+  type: TransactionType;
+  is_default: boolean;
+  created_at?: string;
+}
+
+export interface Transaction {
+  id: string;
+  user_id: string;
+  category_id: string;
+  type: TransactionType;
+  description: string | null;
+  amount: number;
+  date: string;
+  created_at?: string;
+  updated_at?: string;
+  category?: TransactionCategory;
+}
+
+export interface Profile {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+  role: ProfileRole;
+  notify_new_orders?: boolean;
+  notify_approved_quotes?: boolean;
+  notify_delivery_reminder?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}

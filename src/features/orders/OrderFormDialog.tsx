@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useEffect } from 'react';
+import { useCallback, useMemo, useEffect, useState } from 'react';
 import { useForm, useFieldArray, FormProvider, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { AppDialog } from '../../components/patterns/AppDialog';
 import { useSupabaseQuery } from '../../hooks/useSupabaseQuery';
 import { useSupabaseMutation } from '../../hooks/useSupabaseMutation';
-import { useToast } from '../../hooks/use-toast';
+import { useToast } from '../../hooks/useToast';
 import { listClients } from '../../services/clientsService';
 import { listProducts } from '../../services/productsService';
 import { createManualOrder, updateManualOrder, type OrderWithDetails } from '../../services/ordersService';
@@ -82,16 +82,17 @@ export function OrderFormDialog({ open, onOpenChange, onSuccess, orderToEdit }: 
     });
 
     const watchedItems = useWatch({ control: form.control, name: 'items' });
+    const [addCount, setAddCount] = useState(1);
 
     // Load Data
     const fetchClients = useCallback(() => listClients({ pageSize: 1000 }), []);
-    const { data: clientsData, isLoading: isLoadingClients } = useSupabaseQuery(
+    const { data: clientsData, isLoading: _isLoadingClients } = useSupabaseQuery(
         fetchClients,
         { initialData: { items: [], total: 0 } }
     );
 
     const fetchProducts = useCallback(() => listProducts({ pageSize: 500 }), []);
-    const { data: productsData, isLoading: isLoadingProducts } = useSupabaseQuery(
+    const { data: productsData, isLoading: _isLoadingProducts } = useSupabaseQuery(
         fetchProducts,
         { initialData: { items: [], total: 0 } }
     );
@@ -224,12 +225,7 @@ export function OrderFormDialog({ open, onOpenChange, onSuccess, orderToEdit }: 
                     </div>
 
                     <div className="space-y-4 border rounded-lg p-4 bg-muted/20 border-border">
-                        <div className="flex items-center justify-between">
-                            <Label className="text-base">Itens do Pedido</Label>
-                            <Button type="button" variant="outline" size="sm" onClick={() => append({ productId: '', productName: '', quantity: 1, unitPrice: 0 })}>
-                                <Plus className="h-4 w-4 mr-2" /> Adicionar Item
-                            </Button>
-                        </div>
+                        <Label className="text-base">Itens do Pedido</Label>
 
                         <div className="space-y-3">
                             {fields.map((field, index) => (
@@ -272,6 +268,37 @@ export function OrderFormDialog({ open, onOpenChange, onSuccess, orderToEdit }: 
                                     </div>
                                 </div>
                             ))}
+                        </div>
+
+                        {/* Botão Adicionar Item - embaixo da lista */}
+                        <div className="flex flex-col md:flex-row items-center gap-3 pt-2 border-t border-border">
+                            <div className="flex items-center gap-2">
+                                <Label className="text-xs text-muted-foreground whitespace-nowrap">Quantidade:</Label>
+                                <Input
+                                    type="number"
+                                    min={1}
+                                    value={addCount}
+                                    onChange={(e) => setAddCount(Math.max(1, Number(e.target.value) || 1))}
+                                    className="w-20 h-9"
+                                />
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="flex-1 h-10 border-dashed w-full md:w-auto"
+                                onClick={() => {
+                                    const itemsToAdd = Array.from({ length: addCount }, () => ({
+                                        productId: '',
+                                        productName: '',
+                                        quantity: 1,
+                                        unitPrice: 0
+                                    }));
+                                    append(itemsToAdd);
+                                }}
+                            >
+                                <Plus className="h-4 w-4 mr-2" />
+                                {addCount > 1 ? `Adicionar ${addCount} itens` : 'Adicionar Item'}
+                            </Button>
                         </div>
                     </div>
 

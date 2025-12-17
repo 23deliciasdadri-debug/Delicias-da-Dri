@@ -6,10 +6,6 @@ import {
   MoreHorizontal,
   AlertTriangle,
   Package,
-  Archive,
-  Hammer,
-  HardHat,
-  ShoppingCart,
   Trash2,
   PencilLine,
 } from 'lucide-react';
@@ -33,40 +29,13 @@ import { deleteInventoryItem, listInventoryItems, saveInventoryItem, type Invent
 import { StatusMenu } from '../components/patterns/StatusBadge';
 import { INVENTORY_STATUS_OPTIONS } from '../constants/status';
 
-const categories = [
-  { id: 'all', label: 'Todos', icon: Package },
-  { id: 'mercado', label: 'Mercado', icon: ShoppingCart },
-  { id: 'ferramentas', label: 'Ferramentas', icon: Hammer },
-  { id: 'embalagens', label: 'Embalagens', icon: Archive },
-  { id: 'epis', label: 'EPIs', icon: HardHat },
-];
-
-const defaultForm: InventoryItemInput = {
-  id: undefined,
-  name: '',
-  quantity: 0,
-  unit: 'un',
-  min_stock: 0,
-  category: 'mercado',
-  status: null,
-  location: '',
-  notes: '',
-};
-
-function deriveStatus(item: InventoryItem) {
-  const qty = Number(item.quantity ?? 0);
-  const min = Number(item.min_stock ?? 0);
-  if (item.status) return item.status;
-  if (qty <= 0 || qty <= min * 0.5) return 'critical';
-  if (qty <= min) return 'low';
-  return 'ok';
-}
-
+// Helpers extraídos
+import { INVENTORY_CATEGORIES, DEFAULT_INVENTORY_FORM, deriveStatus } from './inventory/helpers/statusHelpers';
 export default function InventoryPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
-  const [form, setForm] = useState<InventoryItemInput>(defaultForm);
+  const [form, setForm] = useState<InventoryItemInput>(DEFAULT_INVENTORY_FORM);
   const [editing, setEditing] = useState<InventoryItem | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
@@ -75,7 +44,7 @@ export default function InventoryPage() {
   useEffect(() => {
     if (searchParams.get('action') === 'new') {
       setEditing(null);
-      setForm(defaultForm);
+      setForm(DEFAULT_INVENTORY_FORM);
       setIsDialogOpen(true);
       setSearchParams(prev => {
         const next = new URLSearchParams(prev);
@@ -102,7 +71,7 @@ export default function InventoryPage() {
       toast.success('Item salvo com sucesso.');
       setIsDialogOpen(false);
       setEditing(null);
-      setForm(defaultForm);
+      setForm(DEFAULT_INVENTORY_FORM);
       void refetch();
     },
     onError: (message) => toast.error(message),
@@ -186,7 +155,7 @@ export default function InventoryPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm(defaultForm);
+    setForm(DEFAULT_INVENTORY_FORM);
     setIsDialogOpen(true);
   };
 
@@ -309,7 +278,7 @@ export default function InventoryPage() {
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.filter((c) => c.id !== 'all').map((cat) => (
+                    {INVENTORY_CATEGORIES.filter((c) => c.id !== 'all').map((cat) => (
                       <SelectItem key={cat.id} value={cat.id}>{cat.label}</SelectItem>
                     ))}
                   </SelectContent>
@@ -389,11 +358,11 @@ export default function InventoryPage() {
         <FilterBar
           left={
             <TabsList className="bg-muted p-1 w-full sm:w-auto flex overflow-x-auto">
-              {categories.map((cat) => (
+              {INVENTORY_CATEGORIES.map((cat) => (
                 <TabsTrigger
                   key={cat.id}
                   value={cat.id}
-                  className="data-[state=active]:bg-white data-[state=active]:text-rose-600 flex-1 sm:flex-none"
+                  className="data-[state=active]:bg-card data-[state=active]:text-primary flex-1 sm:flex-none"
                 >
                   <cat.icon className="h-4 w-4 mr-2 sm:mr-0 md:mr-2" />
                   <span className="hidden md:inline">{cat.label}</span>
@@ -403,7 +372,7 @@ export default function InventoryPage() {
           }
           right={
             <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar item..."
                 className="pl-10 bg-card w-full"

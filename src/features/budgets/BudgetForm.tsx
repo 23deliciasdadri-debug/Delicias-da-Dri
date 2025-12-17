@@ -22,12 +22,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
 import { useSupabaseQuery } from '../../hooks/useSupabaseQuery';
 import { useSupabaseMutation } from '../../hooks/useSupabaseMutation';
-import { useToast } from '../../hooks/use-toast';
+import { useToast } from '../../hooks/useToast';
 import { listClients } from '../../services/clientsService';
 import { listProducts } from '../../services/productsService';
 import {
   createQuoteWithItems,
   updateQuoteWithItems,
+  regenerateQuotePublicLink,
+  buildQuotePublicUrl,
   type QuoteDetails,
   type QuoteInsertInput,
   type QuoteItemDraft,
@@ -64,7 +66,7 @@ const createEmptyItem = (): BudgetFormValues['items'][number] => ({
 const mapQuoteToFormValues = (quote?: QuoteDetails | null): BudgetFormValues => ({
   client_id: quote?.client_id ?? '',
   event_type: quote?.event_type ?? '',
-  event_date: quote?.event_date ? new Date(quote.event_date).toISOString().split('T')[0] : '',
+  event_date: quote?.event_date ? quote.event_date.split('T')[0] : '',
   notes: quote?.notes ?? '',
   items: (quote?.items ?? []).map((item) => ({
     id: String(item.id ?? Math.random().toString(36).slice(2, 10)),
@@ -150,6 +152,7 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
     name: 'items',
   });
   const [addCount, setAddCount] = useState<number>(1);
+  const [isSharing, setIsSharing] = useState(false);
 
   const watchedItems = useWatch<BudgetFormValues, 'items'>({
     control: budgetForm.control,
@@ -241,6 +244,65 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
       budgetForm.reset(values);
     }
 
+    onSuccess?.({ quoteId: result.id, mode });
+  });
+
+  // Salvar e gerar link compartilhável
+  const handleSaveAndShare = budgetForm.handleSubmit(async (values) => {
+    if (mode !== 'edit' || !quote?.id) return;
+
+    const currentStatus = quote.status ?? 'Pendente';
+    const quotePayload: QuoteInsertInput = {
+      client_id: values.client_id,
+      status: currentStatus,
+      event_type: values.event_type?.trim() || null,
+      event_date: values.event_date || null,
+      total_amount: Number(totalAmount.toFixed(2)),
+      notes: values.notes?.trim() || null,
+    };
+
+    const quoteItemsPayload: QuoteItemDraft[] = values.items.map((item) => ({
+      product_id: item.productId || null,
+      product_name_copy: item.productName.trim(),
+      quantity: item.quantity,
+      price_at_creation: item.unitPrice,
+    }));
+
+    // Salvar primeiro
+    const result = await updateQuoteMutation.mutate({
+      quoteId: quote.id,
+      quote: quotePayload,
+      quoteItems: quoteItemsPayload,
+    });
+
+    if (!result) {
+      toast({ title: 'Erro ao salvar', description: 'Não foi possível salvar o orçamento.', variant: 'destructive' });
+      return;
+    }
+
+    // Gerar link compartilhável
+    setIsSharing(true);
+    try {
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      const payload = await regenerateQuotePublicLink(quote.id, { expiresAt });
+
+      if (payload?.token) {
+        const url = buildQuotePublicUrl(payload.token);
+        if (navigator?.clipboard?.writeText) {
+          await navigator.clipboard.writeText(url);
+          toast({ title: 'Salvo e link copiado!', description: 'O orçamento foi salvo e o link foi copiado para a área de transferência.' });
+        } else {
+          toast({ title: 'Orçamento salvo', description: `Link: ${url}` });
+        }
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao gerar link';
+      toast({ title: 'Erro ao compartilhar', description: message, variant: 'destructive' });
+    } finally {
+      setIsSharing(false);
+    }
+
+    budgetForm.reset(values);
     onSuccess?.({ quoteId: result.id, mode });
   });
 
@@ -501,8 +563,18 @@ const BudgetForm: React.FC<BudgetFormProps> = ({
                     {mode === 'edit' ? 'Salvar Alterações' : 'Salvar Orçamento'}
                   </Button>
                   {mode === 'edit' && (
-                    <Button type="button" variant="outline" className="w-full border-border text-foreground hover:bg-muted/50">
-                      <Share2 className="mr-2 h-4 w-4" />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full border-border text-foreground hover:bg-muted/50"
+                      onClick={handleSaveAndShare}
+                      disabled={activeMutation.isMutating || isSharing}
+                    >
+                      {isSharing ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Share2 className="mr-2 h-4 w-4" />
+                      )}
                       Salvar e Compartilhar
                     </Button>
                   )}

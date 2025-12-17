@@ -5,6 +5,7 @@ import { createQuoteWithItems, type QuoteInsertInput, type QuoteItemDraft } from
 export interface OrderWithDetails extends Order {
   client: Pick<Client, 'id' | 'name' | 'phone' | 'email'> | null;
   items: QuoteItem[];
+  cashflow_registered?: boolean;
 }
 
 type RawOrderRow = Order & {
@@ -13,6 +14,7 @@ type RawOrderRow = Order & {
     id: string;
     items?: QuoteItem[] | null;
   } | null;
+  cashflow_registered?: boolean;
 };
 
 const mapOrder = (row: RawOrderRow): OrderWithDetails => ({
@@ -26,6 +28,7 @@ const mapOrder = (row: RawOrderRow): OrderWithDetails => ({
   created_at: row.created_at,
   client: row.client ?? null,
   items: Array.isArray(row.quote?.items) ? (row.quote?.items as QuoteItem[]) : [],
+  cashflow_registered: row.cashflow_registered ?? false,
 });
 
 export async function listOrders(): Promise<OrderWithDetails[]> {
@@ -34,6 +37,7 @@ export async function listOrders(): Promise<OrderWithDetails[]> {
     .select(
       `
         *,
+        cashflow_registered,
         client:clients (
           id,
           name,
@@ -58,6 +62,50 @@ export async function listOrders(): Promise<OrderWithDetails[]> {
 
   if (error) {
     throw new Error(`Erro ao carregar pedidos: ${error.message}`);
+  }
+
+  const rows = ((data ?? []) as unknown) as RawOrderRow[];
+
+  return rows.map((row) => mapOrder(row));
+}
+
+/**
+ * Lista os pedidos de um cliente específico
+ */
+export async function listOrdersByClientId(clientId: string): Promise<OrderWithDetails[]> {
+  if (!clientId) return [];
+
+  const { data, error } = await supabase
+    .from('orders')
+    .select(
+      `
+        *,
+        cashflow_registered,
+        client:clients (
+          id,
+          name,
+          phone,
+          email
+        ),
+        quote:quotes (
+          id,
+          items:quote_items (
+            id,
+            quote_id,
+            product_id,
+            product_name_copy,
+            quantity,
+            price_at_creation
+          )
+        )
+      `,
+    )
+    .eq('client_id', clientId)
+    .order('delivery_date', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error(`Erro ao carregar pedidos do cliente: ${error.message}`);
   }
 
   const rows = ((data ?? []) as unknown) as RawOrderRow[];
@@ -290,5 +338,19 @@ export async function updateManualOrder({
       .insert(itemsToInsert);
 
     if (insertItemsError) throw new Error(`Erro ao inserir novos itens: ${insertItemsError.message}`);
+  }
+}
+
+/**
+ * Marca um pedido como já lançado no fluxo de caixa
+ */
+export async function markOrderAsCashflowRegistered(orderId: string): Promise<void> {
+  const { error } = await supabase
+    .from('orders')
+    .update({ cashflow_registered: true })
+    .eq('id', orderId);
+
+  if (error) {
+    throw new Error(`Erro ao marcar pedido como lançado: ${error.message}`);
   }
 }

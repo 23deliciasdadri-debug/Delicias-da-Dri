@@ -1,17 +1,17 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
+import { parseLocalDate, formatLocalDate } from '../utils/dateHelpers';
 import { useSearchParams } from 'react-router-dom';
 import {
   CheckCircle2,
   Clock,
-  Package,
   Truck,
-  MoreVertical,
-  Printer,
   AlertCircle,
   ArrowRight,
   RefreshCw,
   Search,
-  Plus
+  Plus,
+  Wallet,
+  CheckCircle
 } from 'lucide-react';
 import {
   DndContext,
@@ -21,19 +21,22 @@ import {
   PointerSensor,
   TouchSensor,
   closestCenter,
-  useDroppable,
   useSensor,
   useSensors
 } from '@dnd-kit/core';
-import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+
+// Componentes e helpers extraídos
+import OrderCard from './orders/components/OrderCard';
+import OrderKanbanColumn from './orders/components/OrderKanbanColumn';
+import {
+  buildOrderColumns,
+  findOrderLocation,
+  moveOrderToStatus,
+} from './orders/helpers/kanbanHelpers';
 
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
-import { Separator } from '../components/ui/separator';
-import { ScrollArea } from '../components/ui/scroll-area';
 import { Input } from '../components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { Checkbox } from '../components/ui/checkbox';
@@ -52,19 +55,12 @@ import { CalendarView } from '../components/CalendarView';
 import { AppDialog } from '../components/patterns/AppDialog';
 import { OrderFormDialog } from './orders/OrderFormDialog';
 import OrderPreview from './orders/OrderPreview';
-import { deleteOrder } from '../services/ordersService';
+import { deleteOrder, markOrderAsCashflowRegistered } from '../services/ordersService';
+import { createTransactionFromOrder } from '../services/transactionsService';
 
 // Constants & Types
 const ALL_STATUSES: OrderStatus[] = ORDER_STATUSES;
 
-const COLUMNS_CONFIG: Record<OrderStatus, { title: string; icon: any; color: string }> = {
-  'Aprovado': { title: 'Aprovado', icon: Clock, color: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800' },
-  'Em Produção': { title: 'Em Produção', icon: Package, color: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800' },
-  'Pronto para Entrega': { title: 'Pronto para Entrega', icon: Truck, color: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800' },
-  'Em Entrega': { title: 'Em Entrega', icon: Truck, color: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800' },
-  'Entregue': { title: 'Entregue', icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800' },
-  'Cancelado': { title: 'Cancelado', icon: AlertCircle, color: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800' }
-};
 const ROLE_VISIBLE_STATUSES: Record<ProfileRole, OrderStatus[]> = {
   admin: ALL_STATUSES,
   kitchen: ['Aprovado', 'Em Produção'],
@@ -73,48 +69,6 @@ const ROLE_VISIBLE_STATUSES: Record<ProfileRole, OrderStatus[]> = {
 
 const getVisibleStatuses = (role?: ProfileRole) =>
   role ? ROLE_VISIBLE_STATUSES[role] ?? ALL_STATUSES : ALL_STATUSES;
-
-const buildColumns = (orders?: OrderWithDetails[]): Record<OrderStatus, OrderWithDetails[]> => {
-  const base = {} as Record<OrderStatus, OrderWithDetails[]>;
-  ALL_STATUSES.forEach((status) => { base[status] = []; });
-  (orders ?? []).forEach((order) => {
-    if (base[order.status]) base[order.status].push(order);
-  });
-  return base;
-};
-
-const findOrderLocation = (columns: Record<OrderStatus, OrderWithDetails[]>, orderId: string) => {
-  for (const status of ALL_STATUSES) {
-    const column = columns[status] ?? [];
-    const index = column.findIndex((order) => order.id === orderId);
-    if (index >= 0) return { status, index, order: column[index] };
-  }
-  return null;
-};
-
-const moveOrderToStatus = (
-  columns: Record<OrderStatus, OrderWithDetails[]>,
-  orderId: string,
-  targetStatus: OrderStatus,
-  targetIndex?: number
-) => {
-  const location = findOrderLocation(columns, orderId);
-  if (!location) return columns;
-
-  const clone = { ...columns };
-  // Deep copy arrays
-  ALL_STATUSES.forEach(s => { clone[s] = [...(columns[s] || [])]; });
-
-  const [order] = clone[location.status].splice(location.index, 1);
-  if (!order) return columns;
-
-  const updatedOrder = { ...order, status: targetStatus };
-  const targetColumn = clone[targetStatus];
-  const insertionIndex = targetIndex !== undefined ? Math.min(targetIndex, targetColumn.length) : targetColumn.length;
-  targetColumn.splice(insertionIndex, 0, updatedOrder);
-
-  return clone;
-};
 
 export default function OrdersPage() {
   const { profile } = useAuth();
@@ -136,6 +90,8 @@ export default function OrdersPage() {
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+
+
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedSearch(searchInput), 350);
@@ -164,10 +120,10 @@ export default function OrdersPage() {
     );
   }, [ordersData, debouncedSearch]);
 
-  const [boardColumns, setBoardColumns] = useState(() => buildColumns(filteredOrders));
+  const [boardColumns, setBoardColumns] = useState(() => buildOrderColumns(filteredOrders));
 
   useEffect(() => {
-    setBoardColumns(buildColumns(filteredOrders));
+    setBoardColumns(buildOrderColumns(filteredOrders));
   }, [filteredOrders]);
 
   useEffect(() => {
@@ -246,6 +202,20 @@ export default function OrdersPage() {
     }
   };
 
+  // Handler para lançar pedido no fluxo de caixa
+  const handleRegisterCashflow = async (order: OrderWithDetails) => {
+    try {
+      const description = `Pedido #${order.id.slice(0, 8)} - ${order.client?.name || 'Cliente'}`;
+      await createTransactionFromOrder(order.id, order.total_amount, description);
+      await markOrderAsCashflowRegistered(order.id);
+      toast.success('Receita lançada no fluxo de caixa!');
+      await refetch();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error(`Erro ao lançar receita: ${message}`);
+    }
+  };
+
   const toggleSelectOrder = (id: string, checked: boolean) => {
     setSelectedOrders((prev) => {
       const next = new Set(prev);
@@ -314,7 +284,7 @@ export default function OrdersPage() {
     return filteredOrders.map(order => ({
       id: order.id,
       title: `${order.client?.name || 'Cliente'} (${order.items.length})`,
-      date: order.delivery_date ? new Date(order.delivery_date) : new Date(),
+      date: parseLocalDate(order.delivery_date) || new Date(),
       status: order.status
     }));
   }, [filteredOrders]);
@@ -354,7 +324,7 @@ export default function OrdersPage() {
             Novo Pedido
           </Button>
           <div className="relative w-full sm:w-auto flex-1 sm:flex-none">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar pedido..."
               className="pl-10 w-full sm:w-64"
@@ -396,12 +366,13 @@ export default function OrdersPage() {
             >
               <div className="flex gap-6 h-full min-w-[1000px]">
                 {visibleStatuses.map((status) => (
-                  <KanbanColumn
+                  <OrderKanbanColumn
                     key={status}
                     status={status}
-                    orders={(boardColumns[status] || []) as any}
+                    orders={(boardColumns[status] || [])}
                     isLoading={isLoading}
                     onOrderClick={openDetails}
+                    onRegisterCashflow={handleRegisterCashflow}
                   />
                 ))}
               </div>
@@ -503,7 +474,7 @@ export default function OrdersPage() {
                             <div className="text-xs text-muted-foreground">{order.delivery_details ? 'Com detalhes' : 'Sem detalhes'}</div>
                           </div>
                         </TableCell>
-                        <TableCell>{order.delivery_date ? new Date(order.delivery_date).toLocaleDateString('pt-BR') : '—'}</TableCell>
+                        <TableCell>{formatLocalDate(order.delivery_date)}</TableCell>
                         <TableCell>
                           <div className="max-w-[300px] truncate text-muted-foreground">
                             {order.items.map(i => i.product_name_copy).join(', ')}
@@ -517,10 +488,31 @@ export default function OrdersPage() {
                             disabled={!isAdmin}
                           />
                         </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); openDetails(order); }}>
-                            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                          </Button>
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1">
+                            {/* Botão de lançar no caixa */}
+                            {order.status === 'Entregue' && !order.cashflow_registered && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-xs bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                                onClick={() => void handleRegisterCashflow(order)}
+                              >
+                                <Wallet className="h-3 w-3 mr-1" />
+                                Lançar
+                              </Button>
+                            )}
+                            {/* Badge de já lançado */}
+                            {order.status === 'Entregue' && order.cashflow_registered && (
+                              <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 border-0">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Lançado
+                              </Badge>
+                            )}
+                            <Button variant="ghost" size="icon" onClick={() => openDetails(order)}>
+                              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -566,105 +558,3 @@ export default function OrdersPage() {
     </div>
   );
 }
-
-// Subcomponents
-
-interface KanbanColumnProps {
-  status: OrderStatus;
-  orders: OrderWithDetails[];
-  isLoading: boolean;
-  onOrderClick: (o: OrderWithDetails) => void;
-}
-
-const KanbanColumn: React.FC<KanbanColumnProps> = ({ status, orders, isLoading, onOrderClick }) => {
-  const { setNodeRef } = useDroppable({ id: status });
-  const config = COLUMNS_CONFIG[status] || COLUMNS_CONFIG['Aprovado'];
-
-  const Icon = config.icon;
-
-  return (
-    <div className="flex-1 flex flex-col min-w-[280px] h-full bg-muted/50 rounded-xl border border-border p-3">
-      <div className={`flex items-center justify-between p-3 mb-3 rounded-lg border ${config.color} shadow-sm`}>
-        <div className="flex items-center font-semibold">
-          <Icon className="mr-2 h-4 w-4" />
-          {config.title}
-        </div>
-        <Badge variant="secondary" className="bg-background/50 text-current border-0">
-          {orders.length}
-        </Badge>
-      </div>
-
-      <ScrollArea className="flex-1 w-full h-full min-h-0 pr-3" hideScrollbar>
-        <div ref={setNodeRef} className="space-y-3 min-h-[100px]">
-          <SortableContext items={orders.map(o => o.id)} strategy={verticalListSortingStrategy}>
-            {orders.map(order => (
-              <OrderCard key={order.id} order={order} onClick={() => onOrderClick(order)} />
-            ))}
-          </SortableContext>
-          {orders.length === 0 && !isLoading && (
-            <div className="text-center py-8 text-sm text-muted-foreground border-2 border-dashed border-border rounded-lg">
-              Vazio
-            </div>
-          )}
-        </div>
-      </ScrollArea>
-    </div>
-  );
-};
-
-interface OrderCardProps {
-  order: OrderWithDetails;
-  isOverlay?: boolean;
-  onClick?: () => void;
-}
-
-const OrderCard: React.FC<OrderCardProps> = ({ order, isOverlay, onClick }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: order.id,
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className={`bg-card p-4 rounded-lg border border-border shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing transition-all group relative ${isOverlay ? 'shadow-xl rotate-2 scale-105' : ''}`}
-      onClick={onClick}
-    >
-      <div className="flex justify-between items-start mb-2">
-        <Badge variant="outline" className="text-xs font-normal text-muted-foreground border-border">
-          #{order.id.slice(0, 8)}
-        </Badge>
-        <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-2 opacity-0 group-hover:opacity-100">
-          <MoreVertical className="h-3 w-3" />
-        </Button>
-      </div>
-
-      <h4 className="font-semibold text-foreground mb-1">{order.client?.name || 'Cliente sem nome'}</h4>
-      <div className="flex items-center text-xs text-muted-foreground mb-3">
-        <Clock className="h-3 w-3 mr-1" />
-        {order.delivery_date ? new Date(order.delivery_date).toLocaleDateString('pt-BR') : 'Sem data'}
-      </div>
-
-      <div className="space-y-1">
-        {order.items.slice(0, 2).map((item, idx) => (
-          <div key={idx} className="text-sm text-muted-foreground bg-muted/50 px-2 py-1 rounded">
-            {item.quantity}x {item.product_name_copy}
-          </div>
-        ))}
-        {order.items.length > 2 && (
-          <div className="text-xs text-muted-foreground pl-1">
-            +{order.items.length - 2} outros itens
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};

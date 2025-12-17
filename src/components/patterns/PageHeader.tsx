@@ -48,7 +48,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
         <div>
           <h1
-            className="text-3xl font-serif font-bold leading-tight text-transparent lg:text-4xl gradient-primary bg-clip-text"
+            className="text-3xl font-bold leading-tight text-foreground lg:text-4xl"
           >
             {title}
           </h1>

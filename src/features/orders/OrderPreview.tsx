@@ -46,7 +46,7 @@ const OrderPreview: React.FC<OrderPreviewProps> = ({
     hideActions = false,
 }) => {
     const statusOption = ORDER_STATUS_OPTIONS.find(opt => opt.value === order.status);
-    const statusClass = statusOption?.className || 'bg-slate-100 text-slate-800';
+    const statusClass = statusOption?.className || 'bg-muted text-muted-foreground';
 
     const client = order.client;
     const items = order.items ?? [];

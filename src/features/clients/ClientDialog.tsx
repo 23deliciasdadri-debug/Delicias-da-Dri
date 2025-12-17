@@ -15,6 +15,10 @@ import { AppDialog } from '../../components/patterns/AppDialog';
 import { FormField } from '../../components/patterns/FormField';
 import type { Client } from '../../types';
 import type { ClientInput } from '../../services/clientsService';
+import { useCepLookup, formatCep, formatCpf } from '../../hooks/useCepLookup';
+import { listOrdersByClientId, type OrderWithDetails } from '../../services/ordersService';
+import { formatLocalDate } from '../../utils/dateHelpers';
+import { formatCurrency } from '../../utils/formatters';
 
 const clientFormSchema = z.object({
   name: z.string().min(1, 'Informe o nome do cliente.'),
@@ -55,6 +59,9 @@ export function ClientDialog({
 }: ClientDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
+  const { lookupCep, isLoading: isCepLoading } = useCepLookup();
+  const [clientOrders, setClientOrders] = useState<OrderWithDetails[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
 
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
@@ -114,6 +121,17 @@ export function ClientDialog({
       setActiveTab('profile');
     }
   }, [isEditing]);
+
+  // Load client orders
+  useEffect(() => {
+    if (client?.id && !isEditing && activeTab === 'orders') {
+      setIsLoadingOrders(true);
+      listOrdersByClientId(client.id)
+        .then(setClientOrders)
+        .catch(console.error)
+        .finally(() => setIsLoadingOrders(false));
+    }
+  }, [client?.id, isEditing, activeTab]);
 
   const handleSubmit = form.handleSubmit(async (values) => {
     const payload: ClientInput = {
@@ -295,7 +313,13 @@ export function ClientDialog({
                           <FormField
                             name="document_id"
                             label="CPF/CNPJ"
-                            render={({ field }) => <Input {...field} placeholder="000.000.000-00" />}
+                            render={({ field }) => (
+                              <Input
+                                {...field}
+                                placeholder="000.000.000-00"
+                                onChange={(e) => field.onChange(formatCpf(e.target.value))}
+                              />
+                            )}
                           />
                         </div>
                       ) : (
@@ -340,7 +364,33 @@ export function ClientDialog({
                           <FormField
                             name="postal_code"
                             label="CEP"
-                            render={({ field }) => <Input {...field} placeholder="00000-000" />}
+                            render={({ field }) => (
+                              <div className="flex gap-2">
+                                <Input
+                                  {...field}
+                                  placeholder="00000-000"
+                                  onChange={(e) => field.onChange(formatCep(e.target.value))}
+                                  className="flex-1"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={isCepLoading || !field.value || field.value.replace(/\D/g, '').length < 8}
+                                  onClick={async () => {
+                                    const address = await lookupCep(field.value);
+                                    if (address) {
+                                      form.setValue('address_line1', address.logradouro);
+                                      form.setValue('address_line2', address.complemento);
+                                      form.setValue('city', address.localidade);
+                                      form.setValue('state', address.uf);
+                                    }
+                                  }}
+                                >
+                                  {isCepLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Buscar'}
+                                </Button>
+                              </div>
+                            )}
                           />
                         </div>
                       ) : (
@@ -367,15 +417,19 @@ export function ClientDialog({
                     <div className="grid grid-cols-3 gap-4">
                       <div className="bg-muted/20 p-3 rounded-lg border border-border">
                         <div className="text-xs text-muted-foreground">Total Gasto</div>
-                        <div className="text-lg font-bold text-emerald-600">R$ 0,00</div>
+                        <div className="text-lg font-bold text-emerald-600">
+                          {formatCurrency(clientOrders.reduce((acc, o) => acc + o.total_amount, 0))}
+                        </div>
                       </div>
                       <div className="bg-muted/20 p-3 rounded-lg border border-border">
                         <div className="text-xs text-muted-foreground">Pedidos</div>
-                        <div className="text-lg font-bold text-foreground">0</div>
+                        <div className="text-lg font-bold text-foreground">{clientOrders.length}</div>
                       </div>
                       <div className="bg-muted/20 p-3 rounded-lg border border-border">
                         <div className="text-xs text-muted-foreground">Ticket Medio</div>
-                        <div className="text-lg font-bold text-blue-600">R$ 0,00</div>
+                        <div className="text-lg font-bold text-blue-600">
+                          {formatCurrency(clientOrders.length > 0 ? clientOrders.reduce((acc, o) => acc + o.total_amount, 0) / clientOrders.length : 0)}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -419,9 +473,63 @@ export function ClientDialog({
 
               <TabsContent value="orders" className="mt-0">
                 <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    {isEditing ? 'Conclua a edicao para ver pedidos.' : 'Nenhum pedido encontrado para este cliente.'}
-                  </p>
+                  {isEditing ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      Conclua a edição para ver pedidos.
+                    </p>
+                  ) : isLoadingOrders ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : clientOrders.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      Nenhum pedido encontrado para este cliente.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {clientOrders.map((order) => (
+                        <div
+                          key={order.id}
+                          className="bg-muted/20 p-4 rounded-lg border border-border"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium text-foreground">
+                              Pedido #{order.id.slice(0, 8)}
+                            </span>
+                            <span className={`px-2 py-1 text-xs rounded-full ${order.status === 'Entregue'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : order.status === 'Cancelado'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-amber-100 text-amber-800'
+                              }`}>
+                              {order.status}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Data:</span>{' '}
+                              <span className="font-medium">
+                                {order.delivery_date ? formatLocalDate(order.delivery_date) : 'Não definida'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Valor:</span>{' '}
+                              <span className="font-medium text-emerald-600">
+                                {formatCurrency(order.total_amount)}
+                              </span>
+                            </div>
+                          </div>
+                          {order.items.length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-border">
+                              <span className="text-xs text-muted-foreground">
+                                {order.items.length} item(s): {order.items.map(i => i.product_name_copy).join(', ')}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </TabsContent>
             </div>

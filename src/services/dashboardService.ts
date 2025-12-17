@@ -12,7 +12,7 @@ export interface DashboardRevenuePoint {
 
 export interface DashboardActivityItem {
   id: string;
-  type: 'order' | 'expense';
+  type: 'order' | 'expense' | 'income';
   label: string;
   status: string;
   amount: number;
@@ -91,24 +91,48 @@ interface RecentOrderRow {
   } | null;
 }
 
-function buildRevenueTrend(rows: DeliveredOrderRow[]): DashboardRevenuePoint[] {
+interface TransactionRow {
+  id: string;
+  type: 'income' | 'expense';
+  amount: number;
+  date: string;
+  description: string | null;
+  category?: {
+    name: string;
+  } | null;
+}
+
+/**
+ * Agrupa transações por mês para o gráfico de tendência
+ */
+function buildRevenueTrend(
+  deliveredRows: DeliveredOrderRow[],
+  transactionRows: TransactionRow[]
+): DashboardRevenuePoint[] {
   const today = new Date();
   const monthsToShow = 6;
   const start = new Date(today.getFullYear(), today.getMonth() - (monthsToShow - 1), 1);
 
-  const buckets = new Map<string, number>();
-
-  rows.forEach((row) => {
-    if (!row.delivery_date) {
-      return;
-    }
+  // Buckets para receita (de pedidos entregues)
+  const revenueBuckets = new Map<string, number>();
+  deliveredRows.forEach((row) => {
+    if (!row.delivery_date) return;
     const parsed = new Date(`${row.delivery_date}T00:00:00`);
-    if (Number.isNaN(parsed.getTime())) {
-      return;
-    }
+    if (Number.isNaN(parsed.getTime())) return;
     const key = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}`;
-    const currentValue = buckets.get(key) ?? 0;
-    buckets.set(key, currentValue + Number(row.total_amount ?? 0));
+    const currentValue = revenueBuckets.get(key) ?? 0;
+    revenueBuckets.set(key, currentValue + Number(row.total_amount ?? 0));
+  });
+
+  // Buckets para despesas (da tabela transactions)
+  const expenseBuckets = new Map<string, number>();
+  transactionRows.forEach((row) => {
+    if (row.type !== 'expense') return;
+    const parsed = new Date(`${row.date}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) return;
+    const key = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}`;
+    const currentValue = expenseBuckets.get(key) ?? 0;
+    expenseBuckets.set(key, currentValue + Number(row.amount ?? 0));
   });
 
   const formatter = new Intl.DateTimeFormat('pt-BR', {
@@ -120,9 +144,8 @@ function buildRevenueTrend(rows: DeliveredOrderRow[]): DashboardRevenuePoint[] {
   for (let i = 0; i < monthsToShow; i += 1) {
     const current = new Date(start.getFullYear(), start.getMonth() + i, 1);
     const key = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
-    const revenue = Number(buckets.get(key) ?? 0);
-    // Mock expenses as 40-60% of revenue + some random variance
-    const expenses = Math.floor(revenue * (0.4 + Math.random() * 0.2));
+    const revenue = Number(revenueBuckets.get(key) ?? 0);
+    const expenses = Number(expenseBuckets.get(key) ?? 0);
 
     result.push({
       key,
@@ -138,6 +161,7 @@ function buildRevenueTrend(rows: DeliveredOrderRow[]): DashboardRevenuePoint[] {
 export async function fetchDashboardData(period: DashboardPeriod): Promise<DashboardData> {
   const { startDate, label } = resolvePeriod(period);
 
+  // Query de pedidos entregues
   const ordersQuery = supabase
     .from('orders')
     .select('id, total_amount, delivery_date')
@@ -148,7 +172,24 @@ export async function fetchDashboardData(period: DashboardPeriod): Promise<Dashb
     ordersQuery.gte('delivery_date', startDate);
   }
 
-  const [ordersResponse, quotesResponse, clientsResponse, recentOrdersResponse] = await Promise.all([
+  // Query de transações (para despesas reais)
+  const transactionsQuery = supabase
+    .from('transactions')
+    .select(`
+      id,
+      type,
+      amount,
+      date,
+      description,
+      category:transaction_categories (name)
+    `)
+    .order('date', { ascending: false });
+
+  if (startDate) {
+    transactionsQuery.gte('date', startDate);
+  }
+
+  const [ordersResponse, quotesResponse, clientsResponse, recentOrdersResponse, transactionsResponse] = await Promise.all([
     ordersQuery,
     (() => {
       const query = supabase.from('quotes').select('id', { count: 'exact', head: true }).eq('status', 'Aprovado');
@@ -181,6 +222,7 @@ export async function fetchDashboardData(period: DashboardPeriod): Promise<Dashb
       .order('delivery_date', { ascending: false, nullsFirst: true })
       .order('created_at', { ascending: false })
       .limit(5),
+    transactionsQuery,
   ]);
 
   if (ordersResponse.error) {
@@ -195,45 +237,62 @@ export async function fetchDashboardData(period: DashboardPeriod): Promise<Dashb
   if (recentOrdersResponse.error) {
     throw new Error(`Erro ao buscar pedidos recentes: ${recentOrdersResponse.error.message}`);
   }
+  if (transactionsResponse.error) {
+    throw new Error(`Erro ao carregar transações: ${transactionsResponse.error.message}`);
+  }
 
   const deliveredRows = ((ordersResponse.data ?? []) as unknown) as DeliveredOrderRow[];
-  const totalRevenue = deliveredRows.reduce((sum, row) => sum + Number(row.total_amount ?? 0), 0);
 
-  // Mock total expenses
-  const expenses = Math.floor(totalRevenue * 0.45);
+  // Calcular receitas e despesas REAIS da tabela transactions
+  const transactionRows = ((transactionsResponse.data ?? []) as unknown) as TransactionRow[];
+
+  const totalRevenue = transactionRows
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + Number(t.amount ?? 0), 0);
+
+  const expenses = transactionRows
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + Number(t.amount ?? 0), 0);
 
   const recentOrdersRaw = ((recentOrdersResponse.data ?? []) as unknown) as RecentOrderRow[];
 
-  const recentActivity: DashboardActivityItem[] = recentOrdersRaw.map((row) => ({
-    id: row.id,
-    type: 'order',
-    label: row.client?.name ?? 'Cliente',
-    status: row.status,
-    amount: Number(row.total_amount ?? 0),
-    date: row.delivery_date ?? null,
-  }));
+  // Combinar atividades recentes: pedidos + transações
+  const recentActivity: DashboardActivityItem[] = [];
 
-  // Inject some mock expenses into recent activity if list is short or just to mix it up
-  if (recentActivity.length > 0) {
-    recentActivity.splice(1, 0, {
-      id: 'exp-1',
-      type: 'expense',
-      label: 'Supermercado Atacadão',
-      status: 'Pago',
-      amount: 450.00,
-      date: new Date().toISOString(),
+  // Adicionar pedidos recentes
+  recentOrdersRaw.forEach((row) => {
+    recentActivity.push({
+      id: row.id,
+      type: 'order',
+      label: row.client?.name ?? 'Cliente',
+      status: row.status,
+      amount: Number(row.total_amount ?? 0),
+      date: row.delivery_date ?? null,
     });
-    if (recentActivity.length > 3) {
-      recentActivity.splice(3, 0, {
-        id: 'exp-2',
-        type: 'expense',
-        label: 'Embalagens & Cia',
-        status: 'Pendente',
-        amount: 120.50,
-        date: new Date(Date.now() - 86400000).toISOString(),
-      });
-    }
-  }
+  });
+
+  // Adicionar transações recentes (últimas 3 despesas)
+  const recentExpenses = transactionRows
+    .filter(t => t.type === 'expense')
+    .slice(0, 3);
+
+  recentExpenses.forEach((t) => {
+    recentActivity.push({
+      id: t.id,
+      type: 'expense',
+      label: t.description || t.category?.name || 'Despesa',
+      status: 'Pago',
+      amount: Number(t.amount ?? 0),
+      date: t.date,
+    });
+  });
+
+  // Ordenar por data (mais recente primeiro) e limitar
+  recentActivity.sort((a, b) => {
+    const dateA = a.date ? new Date(a.date).getTime() : 0;
+    const dateB = b.date ? new Date(b.date).getTime() : 0;
+    return dateB - dateA;
+  });
 
   return {
     periodLabel: label,
@@ -242,7 +301,8 @@ export async function fetchDashboardData(period: DashboardPeriod): Promise<Dashb
     deliveredOrders: deliveredRows.length,
     approvedQuotes: quotesResponse.count ?? 0,
     newClients: clientsResponse.count ?? 0,
-    revenueTrend: buildRevenueTrend(deliveredRows),
-    recentActivity: recentActivity.slice(0, 6), // Limit to 6 items
+    revenueTrend: buildRevenueTrend(deliveredRows, transactionRows),
+    recentActivity: recentActivity.slice(0, 6),
   };
 }
+
