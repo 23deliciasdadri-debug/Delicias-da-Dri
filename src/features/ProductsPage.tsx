@@ -49,7 +49,7 @@ import {
   listProductMedia,
   uploadProductMediaFile,
 } from '../services/productMediaService';
-import { FormField, FormSection, ImagePicker, AppDialog, DialogFooter, FilterBar } from '../components/patterns';
+import { FormField, FormSection, ImagePicker, AppDialog, DialogFooter, FilterBar, PaginatedList } from '../components/patterns';
 import type { ImagePickerItem } from '../components/patterns/ImagePicker';
 import { ViewSwitcher, type ViewType } from '../components/ViewSwitcher';
 
@@ -418,77 +418,88 @@ export default function ProductsPage() {
             <p className="text-muted-foreground">Tente ajustar os filtros ou adicione um novo produto.</p>
           </div>
         ) : view === 'gallery' ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 pb-4">
-            {productsData?.items.map((product) => (
-              <Card key={product.id} className="overflow-hidden border-border shadow-sm hover:shadow-md transition-all group h-fit bg-card">
-                <div className="aspect-square relative overflow-hidden bg-muted/20 cursor-pointer" onClick={() => handlePreviewProduct(product)}>
-                  {product.image_url ? (
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground/50">
-                      <ImageIcon className="h-12 w-12" />
-                    </div>
-                  )}
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 pb-4">
+              {productsData?.items.map((product) => (
+                <Card key={product.id} className="overflow-hidden border-border shadow-sm hover:shadow-md transition-all group h-fit bg-card">
+                  <div className="aspect-square relative overflow-hidden bg-muted/20 cursor-pointer" onClick={() => handlePreviewProduct(product)}>
+                    {product.image_url ? (
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground/50">
+                        <ImageIcon className="h-12 w-12" />
+                      </div>
+                    )}
 
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="secondary" size="icon" className="h-8 w-8 bg-card/90 backdrop-blur-sm shadow-sm">
-                          <MoreHorizontal className="h-4 w-4 text-foreground" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEditProduct(product)}>
-                          <Edit className="mr-2 h-4 w-4" /> Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-rose-600" onClick={() => handleDeleteProduct(product)}>
-                          <Trash className="mr-2 h-4 w-4" /> Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="secondary" size="icon" className="h-8 w-8 bg-card/90 backdrop-blur-sm shadow-sm">
+                            <MoreHorizontal className="h-4 w-4 text-foreground" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditProduct(product)}>
+                            <Edit className="mr-2 h-4 w-4" /> Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-rose-600" onClick={() => handleDeleteProduct(product)}>
+                            <Trash className="mr-2 h-4 w-4" /> Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <div className="absolute bottom-2 left-2">
+                      <Badge className="bg-card/90 text-foreground hover:bg-card shadow-sm backdrop-blur-sm">
+                        {product.product_type === 'COMPONENTE_BOLO' ? product.component_category : 'Menu'}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="absolute bottom-2 left-2">
-                    <Badge className="bg-card/90 text-foreground hover:bg-card shadow-sm backdrop-blur-sm">
-                      {product.product_type === 'COMPONENTE_BOLO' ? product.component_category : 'Menu'}
-                    </Badge>
-                  </div>
-                </div>
-                <CardContent className="p-4 cursor-pointer" onClick={() => handlePreviewProduct(product)}>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className={`p-1 rounded hover:bg-muted transition-colors flex-shrink-0 ${product.is_visible !== false ? 'text-muted-foreground hover:text-foreground' : 'text-destructive/50 hover:text-destructive'}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!isAdmin) return;
-                        updateMutation.mutate({
-                          ...product,
-                          is_visible: product.is_visible === false
-                        }).then(() => {
-                          toast.success(product.is_visible === false ? 'Produto visível' : 'Produto oculto');
-                        });
-                      }}
-                      disabled={!isAdmin}
-                      title={product.is_visible !== false ? 'Ocultar produto' : 'Mostrar produto'}
-                    >
-                      {product.is_visible !== false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                    </button>
-                    <h3 className={`font-semibold truncate hover:text-primary transition-colors ${product.is_visible === false ? 'text-muted-foreground line-through' : 'text-foreground'}`} title={product.name}>{product.name}</h3>
-                  </div>
-                  <div className="flex items-baseline mt-1 text-muted-foreground text-sm">
-                    <span className="text-lg font-bold text-primary mr-1">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
-                    </span>
-                    / {product.unit_type}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  <CardContent className="p-4 cursor-pointer" onClick={() => handlePreviewProduct(product)}>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className={`p-1 rounded hover:bg-muted transition-colors flex-shrink-0 ${product.is_visible !== false ? 'text-muted-foreground hover:text-foreground' : 'text-destructive/50 hover:text-destructive'}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!isAdmin) return;
+                          updateMutation.mutate({
+                            ...product,
+                            is_visible: product.is_visible === false
+                          }).then(() => {
+                            toast.success(product.is_visible === false ? 'Produto visível' : 'Produto oculto');
+                          });
+                        }}
+                        disabled={!isAdmin}
+                        title={product.is_visible !== false ? 'Ocultar produto' : 'Mostrar produto'}
+                      >
+                        {product.is_visible !== false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                      </button>
+                      <h3 className={`font-semibold truncate hover:text-primary transition-colors ${product.is_visible === false ? 'text-muted-foreground line-through' : 'text-foreground'}`} title={product.name}>{product.name}</h3>
+                    </div>
+                    <div className="flex items-baseline mt-1 text-muted-foreground text-sm">
+                      <span className="text-lg font-bold text-primary mr-1">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price)}
+                      </span>
+                      / {product.unit_type}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <div className="mt-6">
+              <PaginatedList
+                page={page}
+                totalPages={Math.max(1, Math.ceil(totalItems / PRODUCTS_PAGE_SIZE))}
+                totalItems={totalItems}
+                pageSize={PRODUCTS_PAGE_SIZE}
+                onPageChange={setPage}
+              />
+            </div>
+          </>
         ) : (
           <Card className="border-border shadow-sm bg-card">
             {someSelected && (
@@ -610,6 +621,15 @@ export default function ProductsPage() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+            <div className="p-4 border-t border-border">
+              <PaginatedList
+                page={page}
+                totalPages={Math.max(1, Math.ceil(totalItems / PRODUCTS_PAGE_SIZE))}
+                totalItems={totalItems}
+                pageSize={PRODUCTS_PAGE_SIZE}
+                onPageChange={setPage}
+              />
             </div>
           </Card>
         )}

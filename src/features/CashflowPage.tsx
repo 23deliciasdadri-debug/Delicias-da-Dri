@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../components/ui/badge';
 import { Separator } from '../components/ui/separator';
 import { PageHeader } from '../components/patterns/PageHeader';
+import { PaginatedList } from '../components/patterns/PaginatedList';
 
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { useToast } from '../hooks/useToast';
@@ -26,6 +27,8 @@ import { CategoryDialog } from './cashflow/CategoryDialog';
 
 import type { TransactionType, TransactionCategory } from '../types';
 
+const TRANSACTIONS_PAGE_SIZE = 15;
+
 export default function CashflowPage() {
     const { toast } = useToast();
 
@@ -37,21 +40,31 @@ export default function CashflowPage() {
     const [filterCategory, setFilterCategory] = useState<string>('all');
     const [filterStartDate, setFilterStartDate] = useState('');
     const [filterEndDate, setFilterEndDate] = useState('');
+    const [page, setPage] = useState(1);
 
     // Queries
-    const fetchTransactions = useCallback(() => {
-        return listTransactions({
+    const fetchTransactions = useCallback(async () => {
+        const allTransactions = await listTransactions({
             type: filterType === 'all' ? undefined : filterType,
             categoryId: filterCategory === 'all' ? undefined : filterCategory,
             startDate: filterStartDate || undefined,
             endDate: filterEndDate || undefined,
         });
-    }, [filterType, filterCategory, filterStartDate, filterEndDate]);
+        // Calcular paginação cliente-side (o serviço não suporta ainda)
+        const total = allTransactions.length;
+        const start = (page - 1) * TRANSACTIONS_PAGE_SIZE;
+        const items = allTransactions.slice(start, start + TRANSACTIONS_PAGE_SIZE);
+        return { items, total };
+    }, [filterType, filterCategory, filterStartDate, filterEndDate, page]);
 
-    const { data: transactions, isLoading, refetch } = useSupabaseQuery(fetchTransactions, {
+    const { data: transactionsData, isLoading, refetch } = useSupabaseQuery(fetchTransactions, {
         deps: [fetchTransactions],
-        initialData: [],
+        initialData: { items: [], total: 0 },
     });
+
+    const transactions = transactionsData?.items ?? [];
+    const totalItems = transactionsData?.total ?? 0;
+    const totalPages = Math.max(1, Math.ceil(totalItems / TRANSACTIONS_PAGE_SIZE));
 
     const fetchSummary = useCallback(() => {
         return getFinancialSummary(filterStartDate || undefined, filterEndDate || undefined);
@@ -159,7 +172,7 @@ export default function CashflowPage() {
                 <CardContent className="p-4">
                     <div className="flex flex-wrap items-center gap-3">
                         <Filter className="h-4 w-4 text-muted-foreground" />
-                        <Select value={filterType} onValueChange={(v) => setFilterType(v as TransactionType | 'all')}>
+                        <Select value={filterType} onValueChange={(v) => { setFilterType(v as TransactionType | 'all'); setPage(1); }}>
                             <SelectTrigger className="w-[140px]">
                                 <SelectValue placeholder="Tipo" />
                             </SelectTrigger>
@@ -170,7 +183,7 @@ export default function CashflowPage() {
                             </SelectContent>
                         </Select>
 
-                        <Select value={filterCategory} onValueChange={setFilterCategory}>
+                        <Select value={filterCategory} onValueChange={(v) => { setFilterCategory(v); setPage(1); }}>
                             <SelectTrigger className="w-[180px]">
                                 <SelectValue placeholder="Categoria" />
                             </SelectTrigger>
@@ -201,7 +214,7 @@ export default function CashflowPage() {
                             <Input
                                 type="date"
                                 value={filterStartDate}
-                                onChange={(e) => setFilterStartDate(e.target.value)}
+                                onChange={(e) => { setFilterStartDate(e.target.value); setPage(1); }}
                                 className="w-[140px]"
                                 placeholder="Data inicial"
                             />
@@ -209,7 +222,7 @@ export default function CashflowPage() {
                             <Input
                                 type="date"
                                 value={filterEndDate}
-                                onChange={(e) => setFilterEndDate(e.target.value)}
+                                onChange={(e) => { setFilterEndDate(e.target.value); setPage(1); }}
                                 className="w-[140px]"
                                 placeholder="Data final"
                             />
@@ -264,6 +277,17 @@ export default function CashflowPage() {
                         </div>
                     )}
                 </CardContent>
+                {totalItems > 0 && (
+                    <div className="p-4 border-t border-border">
+                        <PaginatedList
+                            page={page}
+                            totalPages={totalPages}
+                            totalItems={totalItems}
+                            pageSize={TRANSACTIONS_PAGE_SIZE}
+                            onPageChange={setPage}
+                        />
+                    </div>
+                )}
             </Card>
 
             {/* Dialogs */}
@@ -284,3 +308,4 @@ export default function CashflowPage() {
         </div>
     );
 }
+

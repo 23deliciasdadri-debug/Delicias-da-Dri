@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/button';
 import type { OrderWithDetails } from '../../services/ordersService';
 import { cn } from '../../lib/utils';
 import { ORDER_STATUS_OPTIONS } from '../../constants/status';
+import { parseLocalDate } from '../../utils/dateHelpers';
 
 interface OrderPreviewProps {
     order: OrderWithDetails;
@@ -18,7 +19,11 @@ interface OrderPreviewProps {
 const formatDate = (value?: string | null) => {
     if (!value) return 'Não informado';
     try {
-        return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(value));
+        // Usa parseLocalDate para datas YYYY-MM-DD (evita problema de timezone)
+        // Para timestamps ISO, usa Date diretamente
+        const date = value.includes('T') ? new Date(value) : parseLocalDate(value);
+        if (!date || Number.isNaN(date.getTime())) return value;
+        return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(date);
     } catch {
         return value;
     }

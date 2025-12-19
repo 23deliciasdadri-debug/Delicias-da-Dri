@@ -4,6 +4,7 @@ import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import type { QuoteDetails } from '../../services/quotesService';
 import { cn } from '../../lib/utils';
+import { parseLocalDate } from '../../utils/dateHelpers';
 
 interface QuotePreviewProps {
   quote: QuoteDetails;
@@ -26,7 +27,11 @@ const STATUS_STYLES: Record<string, string> = {
 const formatDate = (value?: string | null) => {
   if (!value) return 'Não informado';
   try {
-    return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(new Date(value));
+    // Usa parseLocalDate para datas YYYY-MM-DD (evita problema de timezone)
+    // Para timestamps ISO, usa Date diretamente
+    const date = value.includes('T') ? new Date(value) : parseLocalDate(value);
+    if (!date || Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' }).format(date);
   } catch {
     return value;
   }

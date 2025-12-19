@@ -1,9 +1,18 @@
 import type { InventoryItem } from '../types';
 import { supabase } from '../lib/supabaseClient';
 
+export const INVENTORY_PAGE_SIZE = 15;
+
 export interface InventoryListParams {
   category?: string;
   search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface InventoryListResult {
+  items: InventoryItem[];
+  total: number;
 }
 
 const mapInventoryItem = (row: Record<string, any>): InventoryItem => ({
@@ -20,12 +29,37 @@ const mapInventoryItem = (row: Record<string, any>): InventoryItem => ({
   updated_at: row.updated_at ?? undefined,
 });
 
-export async function listInventoryItems(params: InventoryListParams = {}): Promise<InventoryItem[]> {
-  const { category, search } = params;
+export async function listInventoryItems(params: InventoryListParams = {}): Promise<InventoryListResult> {
+  const { category, search, page = 1, pageSize = INVENTORY_PAGE_SIZE } = params;
+
+  // Query para contar total
+  let countQuery = supabase
+    .from('inventory_items')
+    .select('*', { count: 'exact', head: true });
+
+  if (category && category !== 'all') {
+    countQuery = countQuery.eq('category', category);
+  }
+
+  if (search?.trim()) {
+    const term = search.trim();
+    countQuery = countQuery.ilike('name', `%${term}%`);
+  }
+
+  const { count, error: countError } = await countQuery;
+  if (countError) {
+    throw new Error(`Erro ao contar itens: ${countError.message}`);
+  }
+
+  // Query para buscar itens paginados
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
   let query = supabase
     .from('inventory_items')
     .select('*')
-    .order('updated_at', { ascending: false });
+    .order('updated_at', { ascending: false })
+    .range(from, to);
 
   if (category && category !== 'all') {
     query = query.eq('category', category);
@@ -41,7 +75,10 @@ export async function listInventoryItems(params: InventoryListParams = {}): Prom
     throw new Error(`Erro ao carregar estoque: ${error.message}`);
   }
 
-  return (data ?? []).map((row) => mapInventoryItem(row as Record<string, any>));
+  return {
+    items: (data ?? []).map((row) => mapInventoryItem(row as Record<string, any>)),
+    total: count ?? 0,
+  };
 }
 
 export type InventoryItemInput = Omit<

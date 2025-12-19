@@ -17,6 +17,7 @@ import { Badge } from '../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { AppDialog } from '../components/patterns/AppDialog';
 import { FilterBar } from '../components/patterns/FilterBar';
+import { PaginatedList } from '../components/patterns/PaginatedList';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -25,7 +26,7 @@ import { toast } from 'sonner';
 import { useSupabaseQuery } from '../hooks/useSupabaseQuery';
 import { useSupabaseMutation } from '../hooks/useSupabaseMutation';
 import type { InventoryItem } from '../types';
-import { deleteInventoryItem, listInventoryItems, saveInventoryItem, type InventoryItemInput } from '../services/inventoryService';
+import { deleteInventoryItem, listInventoryItems, saveInventoryItem, INVENTORY_PAGE_SIZE, type InventoryItemInput, type InventoryListResult } from '../services/inventoryService';
 import { StatusMenu } from '../components/patterns/StatusBadge';
 import { INVENTORY_STATUS_OPTIONS } from '../constants/status';
 
@@ -39,6 +40,7 @@ export default function InventoryPage() {
   const [editing, setEditing] = useState<InventoryItem | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const [page, setPage] = useState(1);
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
@@ -55,16 +57,20 @@ export default function InventoryPage() {
   }, [searchParams, setSearchParams]);
 
   const fetchInventory = useCallback(
-    () => listInventoryItems({ category: activeTab, search }),
-    [activeTab, search],
+    () => listInventoryItems({ category: activeTab, search, page, pageSize: INVENTORY_PAGE_SIZE }),
+    [activeTab, search, page],
   );
 
   const {
-    data: items = [],
+    data: inventoryData,
     isLoading,
     error,
     refetch,
-  } = useSupabaseQuery<InventoryItem[]>(fetchInventory, { initialData: [], deps: [activeTab, search] });
+  } = useSupabaseQuery<InventoryListResult>(fetchInventory, { initialData: { items: [], total: 0 }, deps: [fetchInventory] });
+
+  const items = inventoryData?.items ?? [];
+  const totalItems = inventoryData?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalItems / INVENTORY_PAGE_SIZE));
 
   const saveMutation = useSupabaseMutation(saveInventoryItem, {
     onSuccess: () => {
@@ -138,9 +144,9 @@ export default function InventoryPage() {
   const metrics = useMemo(() => {
     const critical = items.filter((i) => deriveStatus(i) === 'critical').length;
     const low = items.filter((i) => deriveStatus(i) === 'low').length;
-    const total = items.length;
+    const total = totalItems;
     return { critical, low, total };
-  }, [items]);
+  }, [items, totalItems]);
 
   const allCurrentSelected = items.length > 0 && items.every((i) => selectedItems.has(i.id!));
   const someSelected = selectedItems.size > 0;
@@ -552,6 +558,15 @@ export default function InventoryPage() {
                 {error}
               </div>
             )}
+            <div className="p-4 border-t border-border">
+              <PaginatedList
+                page={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={INVENTORY_PAGE_SIZE}
+                onPageChange={setPage}
+              />
+            </div>
           </CardContent>
         </Card>
       </Tabs>
