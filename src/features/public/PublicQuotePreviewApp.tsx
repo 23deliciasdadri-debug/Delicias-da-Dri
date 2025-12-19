@@ -5,11 +5,11 @@ import QuotePreview from '../budgets/QuotePreview';
 import { Button } from '../../components/ui/button';
 import {
   approveQuoteViaToken,
-  buildQuoteWhatsAppShare,
   getQuotePublicPreview,
   type QuoteDetails,
   type QuotePublicPreviewPayload,
 } from '../../services/quotesService';
+import { supabase } from '../../lib/supabaseClient';
 
 const extractTokenFromPath = (path: string) => {
   const match = path.match(/orcamento\/preview\/([a-zA-Z0-9-]+)/);
@@ -22,6 +22,22 @@ const mapPayloadToDetails = (payload: QuotePublicPreviewPayload): QuoteDetails =
   items: payload.items,
 });
 
+const sanitizePhone = (phone?: string | null) => phone?.replace(/\D/g, '') ?? '';
+
+const buildClientToBusinessWhatsApp = ({
+  businessPhone,
+}: {
+  businessPhone: string;
+}): string | null => {
+  const digits = sanitizePhone(businessPhone);
+  if (!digits) return null;
+
+  const formattedDigits = digits.startsWith('55') ? digits : `55${digits}`;
+  const text = encodeURIComponent('Olá! Gostaria de tirar uma dúvida.');
+
+  return `https://wa.me/${formattedDigits}?text=${text}`;
+};
+
 type FeedbackState = {
   type: 'success' | 'error';
   message: string;
@@ -33,6 +49,7 @@ const PublicQuotePreviewApp: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isApproving, setIsApproving] = useState(false);
   const [approvalFeedback, setApprovalFeedback] = useState<FeedbackState | null>(null);
+  const [businessPhone, setBusinessPhone] = useState<string | null>(null);
   const token = useMemo(() => extractTokenFromPath(window.location.pathname), []);
 
   const loadQuote = useCallback(
@@ -42,6 +59,19 @@ const PublicQuotePreviewApp: React.FC = () => {
     },
     [],
   );
+
+  // Fetch business phone on mount
+  useEffect(() => {
+    const fetchBusinessPhone = async () => {
+      try {
+        const { data } = await supabase.rpc('get_business_contact_phone');
+        if (data) setBusinessPhone(data);
+      } catch (err) {
+        console.error('Erro ao buscar telefone da empresa:', err);
+      }
+    };
+    void fetchBusinessPhone();
+  }, []);
 
   useEffect(() => {
     if (!token) {
@@ -68,14 +98,11 @@ const PublicQuotePreviewApp: React.FC = () => {
   }, [token, loadQuote]);
 
   const handleWhatsapp = () => {
-    if (!quote) {
+    if (!quote || !businessPhone) {
       return;
     }
-    const whatsappHref = buildQuoteWhatsAppShare({
-      phone: quote.client?.phone,
-      clientName: quote.client?.name,
-      quoteUrl: window.location.href,
-      totalAmount: quote.total_amount,
+    const whatsappHref = buildClientToBusinessWhatsApp({
+      businessPhone,
     });
     if (whatsappHref) {
       window.open(whatsappHref, '_blank', 'noopener');

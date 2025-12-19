@@ -600,26 +600,14 @@ export async function approveQuoteViaToken(token: string): Promise<Quote> {
     throw new Error('Token invalido para aprovacao.');
   }
 
-  const { data, error } = await supabase.rpc('approve_quote_via_token', { input_token: token });
+  const { data, error } = await supabase.rpc('approve_quote_via_token', { input_token: token }).single();
 
   if (error || !data) {
     throw new Error(error?.message ?? 'Nao foi possivel aprovar este orcamento.');
   }
 
-  const normalized = normalizeQuoteRow(data);
-
-  if (normalized.status === 'Aprovado') {
-    try {
-      await createOrderFromQuote(normalized.id);
-    } catch (orderError) {
-      console.error('Erro ao criar pedido via aprovacao publica:', orderError);
-      throw orderError instanceof Error
-        ? orderError
-        : new Error('Pedido nao gerado apos aprovar o orcamento.');
-    }
-  }
-
-  return normalized;
+  // A RPC já cria o pedido automaticamente no banco com SECURITY DEFINER
+  return normalizeQuoteRow(data);
 }
 
 export async function updateQuoteStatus(id: string, status: QuoteStatus) {
