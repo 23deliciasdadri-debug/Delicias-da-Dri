@@ -37,6 +37,10 @@ export interface Client {
   notes?: string | null;
   created_at?: string;
   updated_at?: string;
+  // Campos adicionados para autenticação
+  user_id?: string | null;
+  role?: 'client' | 'employee' | 'admin';
+  avatar_url?: string | null;
 }
 
 export type QuoteStatus = 'Pendente' | 'Aprovado' | 'Recusado';

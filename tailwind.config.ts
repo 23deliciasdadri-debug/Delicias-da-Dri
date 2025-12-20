@@ -49,6 +49,12 @@ const config: Config = {
         success: withOpacityValue('--success'),
         warning: withOpacityValue('--warning'),
         info: withOpacityValue('--info'),
+        // Vitrine (Storefront) colors
+        'storefront-primary': withOpacityValue('--storefront-primary'),
+        'storefront-primary-light': withOpacityValue('--storefront-primary-light'),
+        'storefront-secondary': withOpacityValue('--storefront-secondary'),
+        'storefront-cream': withOpacityValue('--storefront-cream'),
+        'storefront-chocolate': withOpacityValue('--storefront-chocolate'),
       } as any,
       borderRadius: {
         lg: 'var(--radius)',

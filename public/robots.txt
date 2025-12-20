@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://deliciasdadri.com.br/sitemap.xml
+
+# Bloquear diretórios administrativos
+Disallow: /admin/
+Disallow: /auth/
+
+# Permitir recursos estáticos
+Allow: /assets/
+Allow: /images/

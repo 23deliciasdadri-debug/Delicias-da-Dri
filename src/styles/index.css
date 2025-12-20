@@ -84,6 +84,19 @@
     --gradient-success: linear-gradient(135deg, rgb(34 197 94) 0%, rgb(22 163 74) 100%);
     --gradient-info: linear-gradient(135deg, rgb(59 130 246) 0%, rgb(37 99 235) 100%);
     --gradient-warning: linear-gradient(135deg, rgb(245 158 11) 0%, rgb(234 88 12) 100%);
+
+    /* ========== VITRINE (Storefront) ========== */
+    /* Paleta específica para a vitrine pública */
+    --storefront-primary: oklch(0.60 0.24 350);
+    /* Rosa vibrante */
+    --storefront-primary-light: oklch(0.95 0.05 350);
+    /* Rosa claro */
+    --storefront-secondary: oklch(0.70 0.10 60);
+    /* Dourado/caramelo */
+    --storefront-cream: oklch(0.98 0.01 90);
+    /* Creme background */
+    --storefront-chocolate: oklch(0.35 0.05 50);
+    /* Marrom chocolate */
   }
 
   /* .dark define as variáveis para o tema ESCURO (Dark Mode) */
@@ -273,6 +286,135 @@ textarea {
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+
+  /* Wave floating animation for hero section */
+  .animate-wave-float {
+    animation: waveFloat 3s ease-in-out infinite;
+  }
+
+  @keyframes waveFloat {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  /* Hover scale animation for cards */
+  .hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Smooth page transitions */
+  .page-enter {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  .page-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+
+  /* Button press effect */
+  .btn-press {
+    transition: transform 0.15s ease;
+  }
+
+  .btn-press:active {
+    transform: scale(0.96);
+  }
+
+  /* Shimmer loading effect */
+  .shimmer {
+    background: linear-gradient(90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        rgba(255, 255, 255, 0) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  /* Stagger animation for grid items */
+  .stagger-fade-in>* {
+    opacity: 0;
+    animation: staggerFadeIn 0.4s ease forwards;
+  }
+
+  .stagger-fade-in>*:nth-child(1) {
+    animation-delay: 0s;
+  }
+
+  .stagger-fade-in>*:nth-child(2) {
+    animation-delay: 0.05s;
+  }
+
+  .stagger-fade-in>*:nth-child(3) {
+    animation-delay: 0.1s;
+  }
+
+  .stagger-fade-in>*:nth-child(4) {
+    animation-delay: 0.15s;
+  }
+
+  .stagger-fade-in>*:nth-child(5) {
+    animation-delay: 0.2s;
+  }
+
+  .stagger-fade-in>*:nth-child(6) {
+    animation-delay: 0.25s;
+  }
+
+  .stagger-fade-in>*:nth-child(7) {
+    animation-delay: 0.3s;
+  }
+
+  .stagger-fade-in>*:nth-child(8) {
+    animation-delay: 0.35s;
+  }
+
+  @keyframes staggerFadeIn {
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* Pulse animation for loading states */
+  .pulse-soft {
+    animation: pulseSoft 2s ease-in-out infinite;
+  }
+
+  @keyframes pulseSoft {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.6;
     }
   }
 }
